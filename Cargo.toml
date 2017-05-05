@@ -1,0 +1,9 @@
+[package]
+name = "avvoenv"
+version = "0.1.0"
+authors = ["Mat Sadler <mat@sourcetagsandcodes.com>"]
+
+[dependencies]
+getopts = "0.2"
+consul = "0.1"
+hashicorp_vault = { git = "https://github.com/ChrisMacNaughton/vault-rs.git" }
