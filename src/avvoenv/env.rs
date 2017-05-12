@@ -26,22 +26,22 @@ impl Env {
     }
 
     fn do_fetch(&mut self) -> Result<(), errors::Error> {
-        match Env::get_current(&self.consul, "global")? {
-            Some(mut data) => {
+        match Env::get_current(&self.consul, "global") {
+            Ok(mut data) => {
                 data.remove("__timestamp__");
                 data.remove("__user__");
                 self.map.extend(data);
             }
-            None => (),
+            Err(errors::Error::Empty) => (),
+            Err(e) => return Err(e),
         }
         Ok(())
     }
 
     // TODO make source trait so this can be used for more than just consul
-    fn get_current(source: &consul::Client, app: &str) -> Result<Option<HashMap<String, String>>, errors::Error> {
+    fn get_current(source: &consul::Client, app: &str) -> Result<HashMap<String, String>, errors::Error> {
         let key = match source.get(&format!("{}/current", app))? {
-            Some(source::Version { version, .. }) => format!("{}/{}", app, version),
-            None => return Ok(None),
+            source::Version { version, .. } => format!("{}/{}", app, version),
         };
         source.get(&key)
     }

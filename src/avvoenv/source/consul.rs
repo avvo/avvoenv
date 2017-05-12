@@ -17,13 +17,13 @@ impl Client {
         Ok(Client { address: url, http: hyper::Client::new() })
     }
 
-    pub fn get<T>(&self, key: &str) -> Result<Option<T>, errors::Error>
+    pub fn get<T>(&self, key: &str) -> Result<T, errors::Error>
     where T: serde::de::DeserializeOwned {
         let mut url = self.address.join(key)?;
         url.set_query(Some("raw=true"));
         let response = self.http.get(url).send()?;
         if response.status != hyper::Ok {
-            return Ok(None)
+            return Err(errors::Error::Empty)
         }
         Ok(serde_json::from_reader(response)?)
     }

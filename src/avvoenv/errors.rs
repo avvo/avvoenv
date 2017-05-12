@@ -9,6 +9,7 @@ pub enum Error {
     ParseError(hyper::error::ParseError),
     HttpError(hyper::Error),
     JsonError(serde_json::Error),
+    Empty,
 }
 
 impl From<hyper::error::ParseError> for Error {
@@ -35,15 +36,17 @@ impl StdError for Error {
             Error::ParseError(ref err) => err.description(),
             Error::HttpError(ref err) => err.description(),
             Error::JsonError(ref err) => err.description(),
+            Error::Empty => "empty",
         }
     }
 
     fn cause(&self) -> Option<&StdError> {
-        Some(match *self {
-            Error::ParseError(ref err) => err as &StdError,
-            Error::HttpError(ref err) => err as &StdError,
-            Error::JsonError(ref err) => err as &StdError,
-        })
+        match *self {
+            Error::ParseError(ref err) => Some(err as &StdError),
+            Error::HttpError(ref err) => Some(err as &StdError),
+            Error::JsonError(ref err) => Some(err as &StdError),
+            Error::Empty => None,
+        }
     }
 }
 
@@ -53,6 +56,7 @@ impl fmt::Display for Error {
             Error::ParseError(ref err) => fmt::Display::fmt(err, f),
             Error::HttpError(ref err) => fmt::Display::fmt(err, f),
             Error::JsonError(ref err) => fmt::Display::fmt(err, f),
+            Error::Empty => write!(f, "empty"),
         }
     }
 }
