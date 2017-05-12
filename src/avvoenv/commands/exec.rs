@@ -1,7 +1,9 @@
 use std;
 use std::os::unix::process::CommandExt;
 use std::io::Write;
+use std::error::Error;
 
+use avvoenv;
 use avvoenv::commands::helpers;
 
 extern crate getopts;
@@ -26,7 +28,18 @@ pub fn exec(program: String, mut opts: getopts::Options, args: Vec<String>) -> !
     if matches.opt_present("i") {
         command.env_clear();
     }
-    command.env("FOO", "bar");
+    match avvoenv::Env::fetch("http://127.0.0.1:8500") {
+        Ok(env) => {
+            // switch to command.envs(env.vars()) when that's stable
+            for (key, val) in env.vars() {
+                command.env(key, val);
+            }
+        }
+        Err(e) => {
+            warnln!("{}", e.description());
+            std::process::exit(1);
+        }
+    };
     warnln!("{}", command.exec());
     std::process::exit(1);
 }

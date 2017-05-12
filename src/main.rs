@@ -3,6 +3,9 @@ use avvoenv::commands;
 
 extern crate getopts;
 
+#[macro_use]
+extern crate serde_derive;
+
 fn main() {
     let mut opts = getopts::Options::new();
     opts.parsing_style(getopts::ParsingStyle::StopAtFirstFree);
