@@ -1,10 +1,13 @@
-mod helpers;
+pub enum CommandResult {
+    #[allow(dead_code)]
+    Success,
+    SuccessWithMessage(String),
+    SuccessWithHelp,
+    ErrorWithMessage(String),
+    ErrorWithHelpMessage(String),
+    ErrorWithHelp,
+}
 
-mod exec;
-pub use self::exec::exec;
-
-mod default;
-pub use self::default::default;
-
-mod plugin;
-pub use self::plugin::plugin;
+pub mod exec;
+pub mod default;
+pub mod plugin;

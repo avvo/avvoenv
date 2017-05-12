@@ -1,9 +1,3 @@
-macro_rules! warnln(
-    ($($arg:tt)*) => { {
-        writeln!(&mut ::std::io::stderr(), $($arg)*).unwrap();
-    } }
-);
-
 pub mod commands;
 pub mod source;
 mod env;
