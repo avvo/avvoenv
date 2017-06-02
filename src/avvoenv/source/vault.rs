@@ -19,7 +19,7 @@ struct Response {
 
 pub struct Client {
     address: hyper::Url,
-    token: VaultToken,
+    token: String,
     http: hyper::Client,
 }
 
@@ -43,7 +43,7 @@ impl Client {
         } else {
             hyper::Client::new()
         };
-        Ok(Client { address: address, token: VaultToken(token), http: client })
+        Ok(Client { address: address, token: token, http: client })
     }
 }
 
@@ -53,13 +53,16 @@ impl Source for Client {
         let mut url = self.address.clone();
         url.path_segments_mut().expect("invalid base URL").push(key);
         let mut headers = hyper::header::Headers::new();
-        headers.set(self.token.clone());
+        headers.set(VaultToken(self.token.clone()));
         let response = self.http.get(url).headers(headers).send()?;
         if response.status != hyper::Ok {
             return Err(errors::Error::Empty)
         }
         let result: serde_json::value::Value = serde_json::from_reader(response)?;
-        Ok(serde_json::from_value(result.get("data").unwrap().clone()).unwrap())
+        match result.get("data") {
+            Some(val) => Ok(serde_json::from_value(val.clone()).expect("failed to upcast json value")),
+            None => Err(errors::Error::Empty),
+        }
     }
 
     fn address(&self) -> &str {
