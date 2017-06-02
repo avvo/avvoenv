@@ -11,6 +11,9 @@ use getopts::{Options,Matches};
 #[macro_use]
 extern crate serde_derive;
 
+#[macro_use]
+extern crate hyper;
+
 // like println, but to stderr
 macro_rules! warnln(
     ($($arg:tt)*) => { {
