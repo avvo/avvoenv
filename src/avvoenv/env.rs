@@ -6,7 +6,6 @@ use avvoenv::errors;
 use avvoenv::source;
 use avvoenv::source::consul;
 use avvoenv::source::vault;
-use avvoenv::source::Source;
 
 extern crate hyper;
 

@@ -8,6 +8,12 @@ pub enum CommandResult {
     ErrorWithHelp,
 }
 
-pub mod exec;
-pub mod default;
-pub mod plugin;
+mod exec;
+pub use self::exec::Exec;
+mod default;
+pub use self::default::Default;
+mod plugin;
+pub use self::plugin::Plugin;
+mod command;
+pub use self::command::Command;
+mod helpers;

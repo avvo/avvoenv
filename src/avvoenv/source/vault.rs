@@ -5,7 +5,6 @@ use avvoenv::errors;
 use avvoenv::source::Source;
 
 extern crate hyper;
-use hyper::header::Headers;
 extern crate hyper_native_tls;
 extern crate serde;
 extern crate serde_json;

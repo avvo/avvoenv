@@ -1,14 +1,17 @@
+use avvoenv::commands::Command;
 use avvoenv::commands::CommandResult;
 use avvoenv::commands::CommandResult::*;
 
 extern crate getopts;
 
-pub static BRIEF: &'static str = "Usage: {} <command> [options]\n\n   exec   Run a command";
+pub struct Default;
 
-pub fn add_opts(opts: getopts::Options) -> getopts::Options {
-    opts
-}
+impl Command for Default {
+    fn brief(&self, program: &str) -> String {
+        format!("Usage: {} <command> [options]\n\n   exec   Run a command", program)
+    }
 
-pub fn call(_: getopts::Matches) -> CommandResult {
-    ErrorWithHelp
+    fn call(&self, _: getopts::Matches) -> CommandResult {
+        ErrorWithHelp
+    }
 }

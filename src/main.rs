@@ -1,12 +1,12 @@
 use std::io::Write;
 
 mod avvoenv;
+use avvoenv::commands;
 use avvoenv::commands::*;
-use avvoenv::commands::CommandResult;
 use avvoenv::commands::CommandResult::*;
 
 extern crate getopts;
-use getopts::{Options,Matches};
+use getopts::Options;
 
 #[macro_use]
 extern crate serde_derive;
@@ -32,20 +32,18 @@ fn main() {
     let mut args: Vec<String> = std::env::args().collect();
     let program = args.remove(0);
 
-    // get the function that handles the subcommand the user specified
-    let (brief, add_opts, call):
-        (&str, fn(Options) -> Options, fn(Matches) -> CommandResult) =
-        match args.get(0).map(String::as_ref) {
-            Some("exec") => {
-                args.remove(0); // remove the command name
-                (exec::BRIEF, exec::add_opts, exec::call)
-            },
-            Some(_) if !args[0].starts_with("-") => (plugin::BRIEF, plugin::add_opts, plugin::call),
-            _ => (default::BRIEF, default::add_opts, default::call),
+    // get the object that handles the subcommand the user specified
+    let command: Box<Command> = match args.get(0).map(String::as_ref) {
+        Some("exec") => {
+            args.remove(0); // remove the command name
+            Box::new(commands::Exec)
+        },
+        Some(_) if !args[0].starts_with("-") => Box::new(commands::Plugin),
+        _ => Box::new(commands::Default),
     };
 
     // let the command add extra options
-    opts = add_opts(opts);
+    opts = command.add_opts(opts);
 
     // handle errors, -v, -h, and call the command
     let result = match opts.parse(args) {
@@ -55,7 +53,7 @@ fn main() {
             SuccessWithMessage(version)
         }
         Ok(ref matches) if matches.opt_present("h") => SuccessWithHelp,
-        Ok(matches) => call(matches),
+        Ok(matches) => command.call(matches),
     };
 
     // figure out what output and output it
@@ -65,10 +63,10 @@ fn main() {
             println!("{}", msg);
         }
         SuccessWithHelp | ErrorWithHelp => {
-            warnln!("{}", opts.usage(&brief.replace("{}", &program)));
+            warnln!("{}", opts.usage(&command.brief(&program)));
         }
         ErrorWithHelpMessage(ref msg) => {
-            let b = brief.replace("{}", &program);
+            let b = command.brief(&program);
             let m = format!("{}\n\n{}", msg, b);
             warnln!("{}", opts.usage(&m));
         }
