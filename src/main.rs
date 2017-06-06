@@ -38,6 +38,10 @@ fn main() {
             args.remove(0); // remove the command name
             Box::new(commands::Exec)
         },
+        Some("write") => {
+            args.remove(0); // remove the command name
+            Box::new(commands::Write)
+        },
         Some(_) if !args[0].starts_with("-") => Box::new(commands::Plugin),
         _ => Box::new(commands::Default),
     };

@@ -40,7 +40,7 @@ impl Env {
                 map.extend(data);
             }
             Err(errors::Error::Empty) => (),
-            Err(e) => return Err(format!("error fetching from {}: {}", source.address(), e)),
+            Err(e) => return Err(format!("error fetching from {}/{}: {}", source.address(), namespace, e)),
         }
         Ok(())
     }
@@ -53,7 +53,7 @@ impl Env {
         source.get(&key)
     }
 
-    pub fn vars(&self) -> std::collections::hash_map::Iter<String, String> {
-        self.map.iter()
+    pub fn vars(&self) -> &HashMap<String, String> {
+        &self.map
     }
 }

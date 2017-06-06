@@ -10,6 +10,8 @@ pub enum CommandResult {
 
 mod exec;
 pub use self::exec::Exec;
+mod write;
+pub use self::write::Write;
 mod default;
 pub use self::default::Default;
 mod plugin;

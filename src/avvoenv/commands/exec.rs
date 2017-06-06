@@ -35,8 +35,8 @@ impl Command for Exec {
             Ok(val) => val,
             Err(res) => return res,
         };
-        // switch to command.envs(env.vars()) when that's stable
-        for (key, val) in env.vars() {
+        // switch to command.envs(env.vars().iter()) when that's stable
+        for (key, val) in env.vars().iter() {
             command.env(key, val);
         }
         ErrorWithMessage(format!("{}", command.exec()))
