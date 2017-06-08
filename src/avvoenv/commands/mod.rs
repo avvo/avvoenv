@@ -18,4 +18,6 @@ mod plugin;
 pub use self::plugin::Plugin;
 mod command;
 pub use self::command::Command;
+mod service;
+pub use self::service::Service;
 mod helpers;
