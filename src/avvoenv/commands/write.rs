@@ -34,6 +34,9 @@ impl Command for Write {
     }
 
     fn call(&self, matches: getopts::Matches) -> CommandResult {
+        if matches.free.len() != 1 {
+            return ErrorWithHelp;
+        }
         let path = matches.free.get(0).expect("couldn't get file argument").clone();
         let format = match matches.opt_str("format") {
             Some(val) => {
@@ -44,9 +47,6 @@ impl Command for Write {
             }
             None => guess_format_type(&path),
         };
-        if matches.free.len() != 1 {
-            return ErrorWithHelp;
-        }
 
         let file: Box<io::Write> = if path == "-" {
             Box::new(io::stdout())
