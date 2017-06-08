@@ -1,4 +1,5 @@
 use std::result::Result;
+use std::io::Read;
 
 use avvoenv::errors;
 use avvoenv::source::Source;
@@ -13,30 +14,30 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(mut address: hyper::Url, prefix: String) -> Result<Client, String> {
+    pub fn new(mut address: hyper::Url) -> Result<Client, String> {
         if address.cannot_be_a_base() {
             return Err(format!("{:?} is not a valid base URL", address));
         };
         address.path_segments_mut()
             .expect("invalid base URL")
             .push("v1")
-            .push("kv")
-            .push(&prefix);
+            .push("kv");
         Ok(Client { address: address, http: hyper::Client::new() })
     }
 }
 
 impl Source for Client {
-    fn get<T>(&self, key: &str) -> Result<T, errors::Error>
-    where T: serde::de::DeserializeOwned {
+    fn get_string(&self, key: &str) -> Result<String, errors::Error> {
         let mut url = self.address.clone();
         url.path_segments_mut().expect("invalid base URL").push(key);
         url.set_query(Some("raw=true"));
-        let response = self.http.get(url).send()?;
+        let mut response = self.http.get(url).send()?;
         if response.status != hyper::Ok {
             return Err(errors::Error::Empty)
         }
-        Ok(serde_json::from_reader(response)?)
+        let mut string = String::new();
+        response.read_to_string(&mut string)?;
+        Ok(string)
     }
 
     fn address(&self) -> &str {

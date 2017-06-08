@@ -1,5 +1,6 @@
 use std;
 use std::result::Result;
+use std::io::Read;
 
 use avvoenv::errors;
 use avvoenv::source::Source;
@@ -23,15 +24,14 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(mut address: hyper::Url, prefix: String, token: String) -> Result<Client, String> {
+    pub fn new(mut address: hyper::Url, token: String) -> Result<Client, String> {
         if address.cannot_be_a_base() {
             return Err(format!("{:?} is not a valid base URL", address));
         };
         address.path_segments_mut()
             .expect("invalid base URL")
             .push("v1")
-            .push("kv")
-            .push(&prefix);
+            .push("kv");
         let client = if address.scheme() == "https" {
             let ssl = match hyper_native_tls::NativeTlsClient::new() {
                 Ok(val) => val,
@@ -47,17 +47,23 @@ impl Client {
 }
 
 impl Source for Client {
-    fn get<T>(&self, key: &str) -> Result<T, errors::Error>
-    where T: serde::de::DeserializeOwned {
+    fn get_string(&self, key: &str) -> Result<String, errors::Error> {
         let mut url = self.address.clone();
         url.path_segments_mut().expect("invalid base URL").push(key);
         let mut headers = hyper::header::Headers::new();
         headers.set(VaultToken(self.token.clone()));
-        let response = self.http.get(url).headers(headers).send()?;
+        let mut response = self.http.get(url).headers(headers).send()?;
         if response.status != hyper::Ok {
             return Err(errors::Error::Empty)
         }
-        let result: serde_json::value::Value = serde_json::from_reader(response)?;
+        let mut string = String::new();
+        response.read_to_string(&mut string)?;
+        Ok(string)
+    }
+    
+    fn get_json<T>(&self, key: &str) -> Result<T, errors::Error>
+    where T: serde::de::DeserializeOwned {
+        let result: serde_json::value::Value = serde_json::from_str(&self.get_string(key)?)?;
         match result.get("data") {
             Some(val) => Ok(serde_json::from_value(val.clone()).expect("failed to upcast json value")),
             None => Err(errors::Error::Empty),
