@@ -94,10 +94,10 @@ fn shell_format(vars: &HashMap<String, String>, export: bool) -> String {
     let pairs: Vec<_> = vars.iter().map(|(key, val)| {
         let escaped_val = shell_escape::escape(val.clone().into());
         if export {
-            format!("export {}={}", key, escaped_val)
+            format!("export {}={}\n", key, escaped_val)
         } else {
-            format!("{}={}", key, escaped_val)
+            format!("{}={}\n", key, escaped_val)
         }
     }).collect();
-    pairs.join("\n")
+    pairs.join("")
 }
