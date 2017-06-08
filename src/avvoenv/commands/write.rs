@@ -1,3 +1,4 @@
+use std;
 use std::fs::File;
 use std::io;
 use std::io::Write as StdWrite;
@@ -33,15 +34,20 @@ impl Command for Write {
     }
 
     fn call(&self, matches: getopts::Matches) -> CommandResult {
-        let format = match format_type(matches.opt_str("format").unwrap_or(String::from("env"))) {
-            Ok(val) => val,
-            Err(e) => return ErrorWithMessage(format!("{}", e)),
+        let path = matches.free.get(0).expect("couldn't get file argument").clone();
+        let format = match matches.opt_str("format") {
+            Some(val) => {
+                match format_type(val) {
+                    Ok(val) => val,
+                    Err(e) => return ErrorWithMessage(format!("{}", e)),
+                }
+            }
+            None => guess_format_type(&path),
         };
         if matches.free.len() != 1 {
             return ErrorWithHelp;
         }
 
-        let path = matches.free.get(0).expect("couldn't get file argument").clone();
         let file: Box<io::Write> = if path == "-" {
             Box::new(io::stdout())
         } else {
@@ -71,6 +77,17 @@ fn format_type(type_string: String) -> Result<FormatType, String> {
         "defaults" => Ok(FormatType::Defaults),
         "yaml" => Ok(FormatType::YAML),
         _ => Err(format!("{} is not a valid format", type_string)),
+    }
+}
+
+fn guess_format_type(input_path: &str) -> FormatType {
+    let path = std::path::Path::new(input_path);
+    match path.extension().and_then(|p| p.to_str()) {
+        Some("defaults") => FormatType::Defaults,
+        Some("sh") => FormatType::Defaults,
+        Some("yml") => FormatType::YAML,
+        Some("yaml") => FormatType::YAML,
+        _ => FormatType::Env,
     }
 }
 
