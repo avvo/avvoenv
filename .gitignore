@@ -1,1 +1,4 @@
 target
+.bundle
+Gemfile.lock
+avvoenv.1

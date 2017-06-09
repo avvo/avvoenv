@@ -1,0 +1,143 @@
+avvoenv(1) -- fetch service environment variables
+=================================================
+
+## SYNOPSIS
+
+`avvoenv` [`-h`|`--help`] [`-v`|`--version`]
+
+`avvoenv` `exec` [`-a`|`--add` <key>=<value>]
+                 [`-c`|`--consul` <url>]
+                 [`--dev` [<user>]]
+                 [`-i`|`--isolate`]
+                 [`-s`|`--service` <name>]
+                 [`-t`|`--vault-token` <token>]
+                 [`-u`|`--vault` <url>]
+                 <command>
+
+`avvoenv` `write` [`-a`|`--add` <key>=<value>]
+                  [`-c`|`--consul` <url>]
+                  [`--dev` [<user>]]
+                  [`-f`|`--format` <format>]
+                  [`-s`|`--service` <name>]
+                  [`-t`|`--vault-token` <token>]
+                  [`-u`|`--vault` <url>]
+                  <path>
+
+`avvoenv` `service` [`-s`|`--service` <name>]
+
+## DESCRIPTION
+
+**avvoenv** fetches the environment variables for an Avvo service.
+
+The `exec` command will execute the given command with the fetched environment
+variables.
+
+The `write` command will write the fetched environment variables to a file.
+
+The `service` command will print what avvoenv thinks is the name of the
+current service, or canonicalise the name given with the `--service` option.
+
+## OPTIONS
+
+  * `-a`, `--add` <key>=<value>:
+    Add an environment variable. This option can be provided multiple times,
+    and/or with a list of multiple space-separated key value pairs. In the
+    second case the argument must be quoted.
+
+  * `-c`, `--consul` <url>:
+    Set the Consul URL, overriding the `CONSUL_HTTP_ADDR` environment variable,
+    and the default of <http://127.0.0.1:8500>.
+
+  * `--dev` [<user>]:
+    Authenticate with Vault via LDAP as <user> instead of with the
+    <vault-token>. Will prompt for a password on standard input. If the <user>
+    argument is provided it will override the `USER` environment variable.
+
+  * `-f`, `--format` <format>:
+    Set the `write` output format. Can be one of <env>, <defaults>, or <yaml>.
+    If not provided the format will be determined from the file extension of
+    the <path> argument, defaulting to <env> for unknown file extensions.
+
+  * `-h`, `--help`:
+    Print the help output and exit.
+
+  * `-i`, `--isolate`:
+    Ignores the inherited environment variables when executing <command>.
+
+  * `-s`, `--service` <name>:
+    Set the service name, overriding the `SERVICE` environment variable.
+    If neither `--service` or `SERVICE` are provided the `./requirements.yml`
+    will be consulted, and if that's not present then working directory name
+    will be used.
+
+  * `-t`, `--vault-token` <token>:
+    Set the token used to authenticate with Vault, overriding the `VAULT_TOKEN`
+    environment variable.
+
+  * `-u`, `--vault` <url>:
+    Set the Vault URL, overriding the `VAULT_ADDR` environment variable, and
+    the default of <https://127.0.0.1:8200>.
+
+  * `-v`, `--version`:
+    Print the version and exit.
+
+## EXAMPLES
+
+Run the current service, with all options coming from the environment:
+
+    avvoenv exec bin/server
+
+Print what **avvoenv** thinks the current service name is:
+
+    avvoenv service
+
+Run the current service with config from the local (non-SSL) Vault and Consul:
+
+    avvoenv exec \
+      --vault 'http://127.0.0.1:8200' \
+      --vault-token 'dev_root_token' bin/server
+
+Write a defaults file for amos, with the Vault and Consul URLs, and Vault
+token from the environment:
+
+    avvoenv write --service amos amos.defaults
+
+Display the current config for gnomon on staging (`-` as the <path> argument
+outputs to standard output):
+
+    avvoenv write --dev --service gnomon \
+      --vault 'https://bcon1stag.corp.avvo.com:8200' \
+      --consul 'http://docker1stag.corp.avvo.com:8500' -
+
+## FILES
+
+  * `./requirements.yml`:
+    Used to determine the service name when neither `--service` or `SERVICE`
+    are provided.
+
+## ENVIRONMENT
+
+  * `CONSUL_HTTP_ADDR`:
+    The Consul URL, overriding the default of <http://127.0.0.1:8500>.
+
+  * `SERVICE`:
+    The service name, overriding that in the `./requirements.yml` (or the
+    working directory name if that's not present).
+
+  * `USER`:
+    The user to authenticate as with the `--dev` option.
+
+  * `VAULT_ADDR`:
+    The Vault URL, overriding the default of <https://127.0.0.1:8200>.
+
+  * `VAULT_TOKEN`:
+    The token used to authenticate with Vault.
+
+## AUTHORS
+
+**avvoenv** is written and maintained by the Avvo Infrastructure Team
+<infrastructure@avvo.com>
+
+## SEE ALSO
+
+vault(1), consul(1), exec(2)
