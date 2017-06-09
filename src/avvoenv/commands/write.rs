@@ -95,26 +95,24 @@ impl FormatType {
     fn format(&self, vars: &HashMap<String, String>) -> String {
         match self {
             &FormatType::Env => {
-                shell_format(vars, false)
+                let pairs: Vec<_> = vars
+                    .iter()
+                    .map(|(key, val)| format!("{}={}\n", key, val))
+                    .collect();
+                pairs.join("")
             }
             &FormatType::Defaults => {
-                shell_format(vars, true)
+                let pairs: Vec<_> = vars
+                    .iter()
+                    .map(|(key, val)| {
+                        let escaped_val = shell_escape::escape(val.clone().into());
+                        format!("export {}={}\n", key, escaped_val)
+                    }).collect();
+                pairs.join("")
             }
             &FormatType::YAML => {
                 serde_yaml::to_string(&vars).unwrap()
             }
         }
     }
-}
-
-fn shell_format(vars: &HashMap<String, String>, export: bool) -> String {
-    let pairs: Vec<_> = vars.iter().map(|(key, val)| {
-        let escaped_val = shell_escape::escape(val.clone().into());
-        if export {
-            format!("export {}={}\n", key, escaped_val)
-        } else {
-            format!("{}={}\n", key, escaped_val)
-        }
-    }).collect();
-    pairs.join("")
 }
