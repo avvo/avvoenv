@@ -9,7 +9,7 @@ extern crate serde_json;
 pub trait Source {
     fn get_string(&self, key: &str) -> Result<String, errors::Error>;
 
-    fn get_json<T>(&self, key: &str) -> Result<T, errors::Error>
+    fn get<T>(&self, key: &str) -> Result<T, errors::Error>
         where T: serde::de::DeserializeOwned {
         Ok(serde_json::from_str(&self.get_string(key)?)?)
     }

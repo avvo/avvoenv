@@ -16,14 +16,12 @@ pub struct Env {
 }
 
 impl Env {
-    fn new(consul: hyper::Url, vault: hyper::Url, vault_token: String) -> Result<Env, String> {
-        let consul_client = consul::Client::new(consul)?;
-        let vault_client = vault::Client::new(vault, vault_token)?;
-        Ok(Env { consul: consul_client, vault: vault_client, map: HashMap::new() })
+    fn new(consul: consul::Client, vault: vault::Client) -> Env {
+        Env { consul: consul, vault: vault, map: HashMap::new() }
     }
 
-    pub fn fetch(service: String, consul: hyper::Url, vault: hyper::Url, vault_token: String) -> Result<Env, String> {
-        let mut env = Env::new(consul, vault, vault_token)?;
+    pub fn fetch(service: String, consul: consul::Client, vault: vault::Client) -> Result<Env, String> {
+        let mut env = Env::new(consul, vault);
         Env::do_fetch(&env.consul, "global", &mut env.map)?;
         Env::do_fetch(&env.vault, "global", &mut env.map)?;
         match Env::get_dependencies(&env.consul, &service) {
@@ -61,15 +59,15 @@ impl Env {
 
     fn get_current<T>(source: &T, app: &str) -> Result<HashMap<String, String>, errors::Error>
         where T: source::Source {
-        let key = match source.get_json(&format!("config/{}/current", app))? {
+        let key = match source.get(&format!("config/{}/current", app))? {
             source::Version { version, .. } => format!("config/{}/{}", app, version),
         };
-        source.get_json(&key)
+        source.get(&key)
     }
 
     fn get_dependencies<T>(source: &T, app: &str) -> Result<HashMap<String, String>, errors::Error>
         where T: source::Source {
-        let deps: Vec<String> = source.get_json(&format!("config/{}/dependencies", app))?;
+        let deps: Vec<String> = source.get(&format!("config/{}/dependencies", app))?;
         let keys = deps.iter().map(|key| format!("{}_BASE_URL", key.replace("-", "_").to_uppercase()));
         let mut map = HashMap::new();
         for key in keys {
@@ -86,6 +84,6 @@ impl Env {
 
     fn get_generated<T>(source: &T, app: &str) -> Result<HashMap<String, String>, errors::Error>
         where T: source::Source {
-        source.get_json(&format!("config/{}/generated", app))
+        source.get(&format!("config/{}/generated", app))
     }
 }

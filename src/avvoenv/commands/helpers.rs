@@ -4,10 +4,15 @@ use avvoenv;
 use avvoenv::Env;
 use avvoenv::commands;
 use avvoenv::commands::CommandResult::*;
+use avvoenv::source::vault;
+use avvoenv::source::consul;
 
 extern crate getopts;
 extern crate hyper;
 extern crate serde_yaml;
+extern crate rpassword;
+extern crate serde;
+extern crate serde_json;
 
 static CONSUL_HTTP_ADDR: &'static str = "http://127.0.0.1:8500";
 static VAULT_ADDR: &'static str = "https://127.0.0.1:8200";
@@ -16,6 +21,7 @@ pub fn add_fetch_opts(mut opts: getopts::Options) -> getopts::Options {
     opts.optopt("s", "service", "set the service name", "NAME");
     opts.optopt("c", "consul", "set the consul host", "URL");
     opts.optopt("u", "vault", "set the vault host", "URL");
+    opts.optflagopt("", "dev", "authenticate with vault", "USER");
     opts.optopt("t", "vault-token", "set the vault token", "TOKEN");
     opts
 }
@@ -29,16 +35,35 @@ pub fn env_from_opts(matches: getopts::Matches) -> Result<Env, commands::Command
         Ok(val) => val,
         Err(s) => return Err(ErrorWithMessage(s)),
     };
+    let consul_client = match consul::Client::new(consul_url) {
+        Ok(val) => val,
+        Err(e) => return Err(ErrorWithMessage(format!("{}", e))),
+    };
     let vault_url = match opt_host(&matches, "vault", "VAULT_ADDR", VAULT_ADDR) {
         Ok(val) => val,
         Err(s) => return Err(ErrorWithMessage(s)),
     };
-    let vault_token = match opt_env(&matches, "vault-token", "VAULT_TOKEN") {
-        Some(val) => val,
-        None => return Err(ErrorWithHelpMessage(String::from("Required option 'vault-token' missing."))),
+    let mut vault_client = match vault::Client::new(vault_url) {
+        Ok(val) => val,
+        Err(e) => return Err(ErrorWithMessage(format!("{}", e))),
+    };
+    if matches.opt_present("dev") {
+        let username = match opt_env(&matches, "dev", "USER") {
+            Some(val) => val,
+            None => return Err(ErrorWithMessage(String::from("Could not determine dev user"))),
+        };
+        let password = rpassword::prompt_password_stderr(&format!("Password for {}:", username)).expect("couldn't get password");
+        if vault_client.ldap_auth(username, password).is_err() {
+            return Err(ErrorWithMessage(String::from("Authentication failed")));
+        };
+    } else {
+        match opt_env(&matches, "vault-token", "VAULT_TOKEN") {
+            Some(val) => vault_client.token = Some(val),
+            None => return Err(ErrorWithHelpMessage(String::from("Required option 'vault-token' missing."))),
+        };
     };
 
-    match avvoenv::Env::fetch(service, consul_url, vault_url, vault_token) {
+    match avvoenv::Env::fetch(service, consul_client, vault_client) {
         Ok(env) => Ok(env),
         Err(e) => Err(ErrorWithMessage(format!("{}", e))),
     }
