@@ -1,4 +1,5 @@
 use std;
+use std::collections::HashMap;
 
 use avvoenv;
 use avvoenv::Env;
@@ -13,6 +14,7 @@ extern crate serde_yaml;
 extern crate rpassword;
 extern crate serde;
 extern crate serde_json;
+extern crate shlex;
 
 static CONSUL_HTTP_ADDR: &'static str = "http://127.0.0.1:8500";
 static VAULT_ADDR: &'static str = "https://127.0.0.1:8200";
@@ -22,6 +24,7 @@ pub fn add_fetch_opts(mut opts: getopts::Options) -> getopts::Options {
     opts.optopt("c", "consul", "set the consul host", "URL");
     opts.optopt("u", "vault", "set the vault host", "URL");
     opts.optflagopt("", "dev", "authenticate with vault", "USER");
+    opts.optmulti("a", "add", "add an environment variable", "KEY=VALUE");
     opts.optopt("t", "vault-token", "set the vault token", "TOKEN");
     opts
 }
@@ -62,8 +65,18 @@ pub fn env_from_opts(matches: getopts::Matches) -> Result<Env, commands::Command
             None => return Err(ErrorWithHelpMessage(String::from("Required option 'vault-token' missing."))),
         };
     };
+    let add = matches.opt_strs("add");
+    let extra: HashMap<String, String> = add.iter()
+        .map(|s| shlex::split(s))
+        .filter(|o| o.is_some())
+        .map(|o| o.unwrap())
+        .flat_map(|v| v)
+        .map(|pair| {
+            let mut parts = pair.splitn(2, "=");
+            (parts.next().unwrap().to_string(), parts.next().unwrap_or("").to_string())
+        }).collect();
 
-    match avvoenv::Env::fetch(service, consul_client, vault_client) {
+    match avvoenv::Env::fetch(service, consul_client, vault_client, extra) {
         Ok(env) => Ok(env),
         Err(e) => Err(ErrorWithMessage(format!("{}", e))),
     }

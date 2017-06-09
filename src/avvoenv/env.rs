@@ -16,12 +16,12 @@ pub struct Env {
 }
 
 impl Env {
-    fn new(consul: consul::Client, vault: vault::Client) -> Env {
-        Env { consul: consul, vault: vault, map: HashMap::new() }
+    fn new(consul: consul::Client, vault: vault::Client, map: HashMap<String, String>) -> Env {
+        Env { consul: consul, vault: vault, map: map }
     }
 
-    pub fn fetch(service: String, consul: consul::Client, vault: vault::Client) -> Result<Env, String> {
-        let mut env = Env::new(consul, vault);
+    pub fn fetch(service: String, consul: consul::Client, vault: vault::Client, map: HashMap<String, String>) -> Result<Env, String> {
+        let mut env = Env::new(consul, vault, map);
         Env::do_fetch(&env.consul, "global", &mut env.map)?;
         Env::do_fetch(&env.vault, "global", &mut env.map)?;
         match Env::get_dependencies(&env.consul, &service) {
