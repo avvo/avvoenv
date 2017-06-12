@@ -1,7 +1,7 @@
 [package]
 name = "avvoenv"
 version = "0.1.0"
-authors = ["Mat Sadler <mat@sourcetagsandcodes.com>"]
+authors = ["Avvo Infrastructure Team <infrastructure@avvo.com>"]
 
 [dependencies]
 getopts = "0.2"
