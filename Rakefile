@@ -1,6 +1,6 @@
 require "rake/clean"
-CLEAN.include("gem")
-CLOBBER.include("target", "avvoenv.1")
+CLEAN.include("gem", "avvoenv")
+CLOBBER.include("target", "avvoenv.1", "avvoenv-mac.zip", "avvoenv-linux.tar.gz")
 
 task default: [:"build:default", :man]
 namespace :build do
@@ -8,6 +8,17 @@ namespace :build do
   task linux: "target/x86_64-unknown-linux-musl/release/avvoenv"
 end
 task man: "avvoenv.1"
+
+# assumes you're building on a mac
+task release: [:"build:default", :"build:linux", :man] do |t|
+  `mkdir -p avvoenv`
+  `cp target/release/avvoenv avvoenv`
+  `cp avvoenv.1 avvoenv`
+  `cp install.sh avvoenv`
+  `zip -r avvoenv-mac.zip avvoenv`
+  `cp target/x86_64-unknown-linux-musl/release/avvoenv avvoenv`
+  `tar -czf avvoenv-linux.tar.gz avvoenv`
+end
 
 task install: [:"build:default", :man] do |t|
   prefix = ENV["PREFIX"] || "."
