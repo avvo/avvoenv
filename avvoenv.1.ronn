@@ -8,6 +8,7 @@ avvoenv(1) -- fetch service environment variables
 `avvoenv` `exec` [`-a`|`--add` <key>=<value>]
                  [`-c`|`--consul` <url>]
                  [`--dev` [<user>]]
+                 [`-F`|`--force`]
                  [`-i`|`--isolate`]
                  [`-s`|`--service` <name>]
                  [`-t`|`--vault-token` <token>]
@@ -52,6 +53,10 @@ current service, or canonicalise the name given with the `--service` option.
     Authenticate with Vault via LDAP as <user> instead of with the
     <vault-token>. Will prompt for a password on standard input. If the <user>
     argument is provided it will override the `USER` environment variable.
+
+  * `-F`, `--force`:
+    Ignore errors and always execute <command>. If any errors are encountered
+    then only the inherited environment variables will be provided.
 
   * `-f`, `--format` <format>:
     Set the `write` output format. Can be one of <env>, <defaults>, or <yaml>.
