@@ -1,5 +1,6 @@
 use std;
 use std::collections::HashMap;
+use std::io::Read;
 
 use avvoenv;
 use avvoenv::Env;
@@ -60,7 +61,9 @@ pub fn env_from_opts(matches: getopts::Matches) -> Result<Env, commands::Command
             return Err(ErrorWithMessage(String::from("Authentication failed")));
         };
     } else {
-        match opt_env(&matches, "vault-token", "VAULT_TOKEN") {
+        let mut path = std::env::home_dir().unwrap_or(std::path::PathBuf::from("/"));
+        path.push(".vault-token");
+        match opt_env_file(&matches, "vault-token", "VAULT_TOKEN", &path) {
             Some(val) => vault_client.token = Some(val),
             None => return Err(ErrorWithHelpMessage(String::from("Required option 'vault-token' missing."))),
         };
@@ -88,6 +91,23 @@ fn opt_env(matches: &getopts::Matches, name: &str, var: &str) -> Option<String> 
 
 fn opt_env_default(matches: &getopts::Matches, name: &str, var: &str, default: &str) -> String {
     opt_env(matches, name, var).unwrap_or(String::from(default))
+}
+
+fn opt_env_file(matches: &getopts::Matches, name: &str, var: &str, path: &std::path::Path) -> Option<String> {
+    opt_env(matches, name, var)
+        .or_else(|| {
+            std::fs::File::open(path)
+                .ok()
+                .map(std::io::BufReader::new)
+                .and_then(|mut buf| {
+                    let mut string = String::new();
+                    if buf.read_to_string(&mut string).is_ok() {
+                        Some(string.trim_right().to_string())
+                    } else {
+                        None
+                    }
+                })
+        })
 }
 
 fn opt_host(matches: &getopts::Matches, name: &str, var: &str, default: &str) -> Result<hyper::Url, String> {

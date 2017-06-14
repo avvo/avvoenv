@@ -77,7 +77,7 @@ current service, or canonicalise the name given with the `--service` option.
 
   * `-t`, `--vault-token` <token>:
     Set the token used to authenticate with Vault, overriding the `VAULT_TOKEN`
-    environment variable.
+    environment variable and `~/.vault-token` file.
 
   * `-u`, `--vault` <url>:
     Set the Vault URL, overriding the `VAULT_ADDR` environment variable, and
@@ -116,6 +116,9 @@ outputs to standard output):
 
 ## FILES
 
+  * `~/.vault-token`:
+    The token used to authenticate with Vault.
+
   * `./requirements.yml`:
     Used to determine the service name when neither `--service` or `SERVICE`
     are provided.
@@ -136,7 +139,8 @@ outputs to standard output):
     The Vault URL, overriding the default of <https://127.0.0.1:8200>.
 
   * `VAULT_TOKEN`:
-    The token used to authenticate with Vault.
+    The token used to authenticate with Vault, overriding the `~/.vault-token`
+    file.
 
 ## AUTHORS
 
