@@ -1,6 +1,7 @@
 # avvoenv
 
-avvoenv fetches the environment variables for Avvo services.
+avvoenv loads config directly from Vault and Consul so that you can just
+restart your application to start using new config.
 
 See [the man page](avvoenv.1.ronn) for more details.
 
