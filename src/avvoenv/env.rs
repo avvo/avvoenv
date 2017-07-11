@@ -8,6 +8,7 @@ use avvoenv::source::consul;
 use avvoenv::source::vault;
 
 extern crate hyper;
+extern crate serde_json;
 
 pub struct Env {
     consul: consul::Client,
@@ -59,10 +60,12 @@ impl Env {
 
     fn get_current<T>(source: &T, app: &str) -> Result<HashMap<String, String>, errors::Error>
         where T: source::Source {
-        let key = match source.get(&format!("config/{}/current", app))? {
-            source::Version { version, .. } => format!("config/{}/{}", app, version),
+        let result: serde_json::value::Value = source.get(&format!("config/{}/current", app))?;
+        let version = match result["version"].as_u64() {
+            Some(val) => val,
+            None => return Err(errors::Error::BadVersion),
         };
-        source.get(&key)
+        source.get(&format!("config/{}/{}", app, version))
     }
 
     fn get_dependencies<T>(source: &T, app: &str) -> Result<HashMap<String, String>, errors::Error>

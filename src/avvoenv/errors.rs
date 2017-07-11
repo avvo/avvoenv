@@ -12,6 +12,7 @@ pub enum Error {
     JsonError(serde_json::Error),
     IoError(std::io::Error),
     Empty,
+    BadVersion,
 }
 
 impl From<hyper::error::ParseError> for Error {
@@ -46,6 +47,7 @@ impl StdError for Error {
             Error::JsonError(ref err) => err.description(),
             Error::IoError(ref err) => err.description(),
             Error::Empty => "empty",
+            Error::BadVersion => "bad version",
         }
     }
 
@@ -56,6 +58,7 @@ impl StdError for Error {
             Error::JsonError(ref err) => Some(err as &StdError),
             Error::IoError(ref err) => Some(err as &StdError),
             Error::Empty => None,
+            Error::BadVersion => None,
         }
     }
 }
@@ -68,6 +71,7 @@ impl fmt::Display for Error {
             Error::JsonError(ref err) => fmt::Display::fmt(err, f),
             Error::IoError(ref err) => fmt::Display::fmt(err, f),
             Error::Empty => write!(f, "empty"),
+            Error::BadVersion => write!(f, "bad version"),
         }
     }
 }
