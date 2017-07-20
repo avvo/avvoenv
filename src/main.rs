@@ -1,5 +1,3 @@
-use std::io::Write;
-
 mod avvoenv;
 use avvoenv::commands;
 use avvoenv::commands::*;
@@ -13,13 +11,6 @@ extern crate serde_derive;
 
 #[macro_use]
 extern crate hyper;
-
-// like println, but to stderr
-macro_rules! warnln(
-    ($($arg:tt)*) => { {
-        writeln!(&mut ::std::io::stderr(), $($arg)*).unwrap();
-    } }
-);
 
 fn main() {
     // set basic options
@@ -71,12 +62,12 @@ fn main() {
             println!("{}", msg);
         }
         SuccessWithHelp | ErrorWithHelp => {
-            warnln!("{}", opts.usage(&command.brief(&program)));
+            eprintln!("{}", opts.usage(&command.brief(&program)));
         }
         ErrorWithHelpMessage(ref msg) => {
             let b = command.brief(&program);
             let m = format!("{}\n\n{}", msg, b);
-            warnln!("{}", opts.usage(&m));
+            eprintln!("{}", opts.usage(&m));
         }
     }
 

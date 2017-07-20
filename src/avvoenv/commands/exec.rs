@@ -35,10 +35,7 @@ impl Command for Exec {
         let ignore_errors = matches.opt_present("F");
         match helpers::env_from_opts(matches) {
             Ok(env) => {
-                // switch to command.envs(env.vars().iter()) when that's stable
-                for (key, val) in env.vars().iter() {
-                    command.env(key, val);
-                }
+                command.envs(env.vars().iter());
                 ErrorWithMessage(format!("{}", command.exec()))
             }
             Err(_) if ignore_errors => ErrorWithMessage(format!("{}", command.exec())),
