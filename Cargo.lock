@@ -1,6 +1,6 @@
 [root]
 name = "avvoenv"
-version = "0.1.0"
+version = "0.1.1-dev"
 dependencies = [
  "getopts 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.10.12 (registry+https://github.com/rust-lang/crates.io-index)",
