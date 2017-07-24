@@ -1,5 +1,5 @@
 require "rake/clean"
-CLEAN.include("gem", "avvoenv")
+CLEAN.include(".gem", ".rust-musl-builder", "avvoenv")
 CLOBBER.include("target", "avvoenv.1", "avvoenv-mac.zip", "avvoenv-linux.tar.gz")
 
 task default: [:"build:default", :man]
@@ -34,18 +34,37 @@ file "target/release/avvoenv" => FileList["src/**/*.rs"] do |t|
   `cargo build --release`
 end
 
-file "target/x86_64-unknown-linux-musl/release/avvoenv" => FileList["src/**/*.rs"]  do |t|
-  `docker run --rm -it -v "$(pwd)":/home/rust/src ekidd/rust-musl-builder cargo build --release`
+file "target/x86_64-unknown-linux-musl/release/avvoenv" => FileList["src/**/*.rs"].add(".rust-musl-builder")  do |t|
+  `docker run --rm -it -v "$(pwd)":/home/rust/src rust-musl-builder cargo build --release`
 end
 
 file "avvoenv.1" => "avvoenv.1.ronn" do |t|
-  `gem install -g -i gem -n gem/bin`
-  ENV["GEM_PATH"] = "./gem"
-  `gem/bin/ronn --roff #{t.source}`
+  `gem install -g -i .gem -n .gem/bin`
+  ENV["GEM_PATH"] = "./.gem"
+  `.gem/bin/ronn --roff #{t.source}`
   File.open(t.name, "r+") do |f|
     original = f.read
     f.rewind
     f << ".ad l\n"
     f << original
   end
+end
+
+OPENSSLDIR_PATCH = <<-PATCH
+--- Dockerfile
++++ Dockerfile
+@@ -59,3 +59,3 @@ RUN VERS=1.0.2j && \\
+     tar xvzf openssl-$VERS.tar.gz && cd openssl-$VERS && \\
+-    env CC=musl-gcc ./config --prefix=/usr/local/musl && \\
++    env CC=musl-gcc ./config --prefix=/usr/local/musl --openssldir=/etc/ssl && \\
+     env C_INCLUDE_PATH=/usr/local/musl/include/ make depend && \\
+PATCH
+
+file ".rust-musl-builder" do |t|
+  `git clone git@github.com:emk/rust-musl-builder.git .rust-musl-builder`
+  wd = Dir.pwd
+  Dir.chdir(".rust-musl-builder")
+  IO.popen("patch", "w") {|io| io << OPENSSLDIR_PATCH}
+  `docker build . -t rust-musl-builder`
+  Dir.chdir(wd)
 end

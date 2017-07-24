@@ -1,5 +1,5 @@
 target
-.bundle
 Gemfile.lock
-avvoenv.1
-gem
+avvoenv*
+.gem
+.rust-musl-builder/
