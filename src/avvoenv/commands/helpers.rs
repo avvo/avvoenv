@@ -10,11 +10,10 @@ use avvoenv::source::vault;
 use avvoenv::source::consul;
 
 extern crate getopts;
-extern crate hyper;
+extern crate reqwest;
 extern crate serde_yaml;
 extern crate rpassword;
 extern crate serde;
-extern crate serde_json;
 extern crate shlex;
 
 static CONSUL_HTTP_ADDR: &'static str = "http://127.0.0.1:8500";
@@ -110,9 +109,9 @@ fn opt_env_file(matches: &getopts::Matches, name: &str, var: &str, path: &std::p
         })
 }
 
-fn opt_host(matches: &getopts::Matches, name: &str, var: &str, default: &str) -> Result<hyper::Url, String> {
+fn opt_host(matches: &getopts::Matches, name: &str, var: &str, default: &str) -> Result<reqwest::Url, String> {
     let url_string = opt_env_default(matches, name, var, default);
-    match hyper::Url::parse(&url_string) {
+    match reqwest::Url::parse(&url_string) {
         Ok(url) => Ok(url),
         Err(e) => Err(format!("{} for {:?}", e, url_string)),
     }

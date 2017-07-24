@@ -9,6 +9,8 @@ use getopts::Options;
 #[macro_use]
 extern crate serde_derive;
 
+// reqwest doesn't yet (re)export a macro for creating custom header types, so
+// we need to directly depend on hyper for that for the moment
 #[macro_use]
 extern crate hyper;
 

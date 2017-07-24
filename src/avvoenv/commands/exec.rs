@@ -7,7 +7,6 @@ use avvoenv::commands::CommandResult;
 use avvoenv::commands::CommandResult::*;
 
 extern crate getopts;
-extern crate hyper;
 
 pub struct Exec;
 

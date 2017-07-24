@@ -1,13 +1,15 @@
 [package]
 name = "avvoenv"
-version = "0.1.1"
+version = "0.2.0-dev"
 authors = ["Avvo Infrastructure Team <infrastructure@avvo.com>"]
 license = "MIT"
 
 [dependencies]
 getopts = "0.2"
-hyper = "0.10"
-hyper-native-tls = "0.2"
+reqwest = "0.7"
+# reqwest doesn't yet (re)export a macro for creating custom header types, so
+# we need to directly depend on hyper for that for the moment
+hyper = "0.11"
 serde = "1.0"
 serde_json = "1.0"
 serde_yaml = "0.7"

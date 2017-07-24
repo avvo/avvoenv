@@ -2,27 +2,27 @@ use std;
 use std::error::Error as StdError;
 use std::fmt;
 
-extern crate hyper;
+extern crate reqwest;
 extern crate serde_json;
 
 #[derive(Debug)]
 pub enum Error {
-    ParseError(hyper::error::ParseError),
-    HttpError(hyper::Error),
+    UrlError(reqwest::UrlError),
+    HttpError(reqwest::Error),
     JsonError(serde_json::Error),
     IoError(std::io::Error),
     Empty,
     BadVersion,
 }
 
-impl From<hyper::error::ParseError> for Error {
-    fn from(err: hyper::error::ParseError) -> Error {
-        Error::ParseError(err)
+impl From<reqwest::UrlError> for Error {
+    fn from(err: reqwest::UrlError) -> Error {
+        Error::UrlError(err)
     }
 }
 
-impl From<hyper::Error> for Error {
-    fn from(err: hyper::Error) -> Error {
+impl From<reqwest::Error> for Error {
+    fn from(err: reqwest::Error) -> Error {
         Error::HttpError(err)
     }
 }
@@ -42,7 +42,7 @@ impl From<std::io::Error> for Error {
 impl StdError for Error {
     fn description(&self) -> &str {
         match *self {
-            Error::ParseError(ref err) => err.description(),
+            Error::UrlError(ref err) => err.description(),
             Error::HttpError(ref err) => err.description(),
             Error::JsonError(ref err) => err.description(),
             Error::IoError(ref err) => err.description(),
@@ -53,7 +53,7 @@ impl StdError for Error {
 
     fn cause(&self) -> Option<&StdError> {
         match *self {
-            Error::ParseError(ref err) => Some(err as &StdError),
+            Error::UrlError(ref err) => Some(err as &StdError),
             Error::HttpError(ref err) => Some(err as &StdError),
             Error::JsonError(ref err) => Some(err as &StdError),
             Error::IoError(ref err) => Some(err as &StdError),
@@ -66,7 +66,7 @@ impl StdError for Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Error::ParseError(ref err) => fmt::Display::fmt(err, f),
+            Error::UrlError(ref err) => fmt::Display::fmt(err, f),
             Error::HttpError(ref err) => fmt::Display::fmt(err, f),
             Error::JsonError(ref err) => fmt::Display::fmt(err, f),
             Error::IoError(ref err) => fmt::Display::fmt(err, f),

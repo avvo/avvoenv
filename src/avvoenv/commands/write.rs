@@ -10,7 +10,6 @@ use avvoenv::commands::CommandResult;
 use avvoenv::commands::CommandResult::*;
 
 extern crate getopts;
-extern crate hyper;
 extern crate shell_escape;
 extern crate serde_yaml;
 

@@ -7,7 +7,6 @@ use avvoenv::source;
 use avvoenv::source::consul;
 use avvoenv::source::vault;
 
-extern crate hyper;
 extern crate serde_json;
 
 pub struct Env {
