@@ -74,8 +74,12 @@ impl Client {
     fn resolve_leader(&mut self) -> Result<(), errors::Error> {
         let info: LeaderResponse = self.get_response("/sys/leader")?.json()?;
         if info.ha_enabled && !info.is_self {
-            self.address = reqwest::Url::parse(&info.leader_address)
+            let mut leader_address = reqwest::Url::parse(&info.leader_address)
                 .expect("invalid leader address returned from vault");
+            leader_address.path_segments_mut()
+                .expect("invalid base URL")
+                .push("v1");
+            self.address = leader_address;
         }
         Ok(())
     }
