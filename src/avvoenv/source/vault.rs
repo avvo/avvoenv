@@ -44,6 +44,10 @@ pub struct Client {
     http: reqwest::Client,
 }
 
+#[derive(Serialize)]
+pub struct TokenRenewRequest {
+}
+
 impl Client {
     pub fn new(mut address: reqwest::Url) -> Result<Client, String> {
         if address.cannot_be_a_base() {
@@ -67,6 +71,11 @@ impl Client {
         let request = AuthRequest { password: password };
         let response: AuthResponseWrapper = self.post_json(&format!("auth/ldap/login/{}", username), &request)?;
         self.token = Some(response.auth.client_token);
+        Ok(())
+    }
+
+    pub fn renew_token(&mut self) -> Result<(), errors::Error> {
+        let _:AuthResponseWrapper = self.post_json("/auth/token/renew-self", &TokenRenewRequest {})?;
         Ok(())
     }
 

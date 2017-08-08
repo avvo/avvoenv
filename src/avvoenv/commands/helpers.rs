@@ -66,6 +66,7 @@ pub fn env_from_opts(matches: getopts::Matches) -> Result<Env, commands::Command
             Some(val) => vault_client.token = Some(val),
             None => return Err(ErrorWithHelpMessage(String::from("Required option 'vault-token' missing."))),
         };
+        let _ = vault_client.renew_token();
     };
     let add = matches.opt_strs("add");
     let extra: HashMap<String, String> = add.iter()
