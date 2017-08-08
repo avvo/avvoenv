@@ -59,9 +59,10 @@ current service, or canonicalise the name given with the `--service` option.
     then only the inherited environment variables will be provided.
 
   * `-f`, `--format` <format>:
-    Set the `write` output format. Can be one of <env>, <defaults>, or <yaml>.
-    If not provided the format will be determined from the file extension of
-    the <path> argument, defaulting to <env> for unknown file extensions.
+    Set the `write` output format. Can be one of <env>, <defaults>, <yaml>,
+    <json>, <hocon>, or <properties>. If not provided the format will be
+    determined from the file extension of the <path> argument, defaulting to
+    <env> for unknown file extensions.
 
   * `-h`, `--help`:
     Print the help output and exit.

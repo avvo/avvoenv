@@ -12,6 +12,7 @@ use avvoenv::commands::CommandResult::*;
 extern crate getopts;
 extern crate shell_escape;
 extern crate serde_yaml;
+extern crate serde_json;
 
 pub struct Write;
 
@@ -19,6 +20,9 @@ enum FormatType {
     Env,
     Defaults,
     YAML,
+    JSON,
+    HOCON,
+    Properties,
 }
 
 impl Command for Write {
@@ -75,6 +79,9 @@ fn format_type(type_string: String) -> Result<FormatType, String> {
         "env" => Ok(FormatType::Env),
         "defaults" => Ok(FormatType::Defaults),
         "yaml" => Ok(FormatType::YAML),
+        "json" => Ok(FormatType::JSON),
+        "hocon" => Ok(FormatType::HOCON),
+        "properties" => Ok(FormatType::Properties),
         _ => Err(format!("{} is not a valid format", type_string)),
     }
 }
@@ -86,8 +93,39 @@ fn guess_format_type(input_path: &str) -> FormatType {
         Some("sh") => FormatType::Defaults,
         Some("yml") => FormatType::YAML,
         Some("yaml") => FormatType::YAML,
+        Some("json") => FormatType::JSON,
+        Some("js") => FormatType::JSON,
+        Some("hocon") => FormatType::HOCON,
+        Some("properties") => FormatType::Properties,
         _ => FormatType::Env,
     }
+}
+
+fn escape_properties_key(value: &str) -> String {
+    let chars: Vec<_> = value.chars().map(|c| {
+        match c {
+            '\\' => "\\\\".to_string(),
+            '\n' => "\\n".to_string(),
+            '\r' => "\\r".to_string(),
+            '\t' => "\\t".to_string(),
+            ' ' => "\\ ".to_string(),
+            _ => c.to_string(),
+        }
+    }).collect();
+    chars.join("")
+}
+
+fn escape_properties_value(value: &str) -> String {
+    let chars: Vec<_> = value.chars().map(|c| {
+        match c {
+            '\\' => "\\\\".to_string(),
+            '\n' => "\\n".to_string(),
+            '\r' => "\\r".to_string(),
+            '\t' => "\\t".to_string(),
+            _ => c.to_string(),
+        }
+    }).collect();
+    chars.join("")
 }
 
 impl FormatType {
@@ -111,6 +149,28 @@ impl FormatType {
             }
             &FormatType::YAML => {
                 serde_yaml::to_string(&vars).unwrap()
+            }
+            &FormatType::JSON => {
+                serde_json::to_string(&vars).unwrap()
+            }
+            &FormatType::HOCON => {
+                let pairs: Vec<_> = vars
+                    .iter()
+                    .map(|(key, val)| {
+                        let escaped_val = serde_json::to_string(&val).unwrap();
+                        format!("{} : {}\n", key, escaped_val)
+                    }).collect();
+                pairs.join("")
+            }
+            &FormatType::Properties => {
+                let pairs: Vec<_> = vars
+                    .iter()
+                    .map(|(key, val)| {
+                        let escaped_key = escape_properties_key(key);
+                        let escaped_val = escape_properties_value(val);
+                        format!("{} = {}\n", escaped_key, escaped_val)
+                    }).collect();
+                pairs.join("")
             }
         }
     }
