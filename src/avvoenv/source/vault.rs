@@ -55,7 +55,8 @@ impl Client {
         };
         address.path_segments_mut()
             .expect("invalid base URL")
-            .push("v1");
+            .push("v1")
+            .push("");
         let client = match reqwest::Client::new() {
             Ok(value) => value,
             Err(_) => return Err(String::from("failed to initialise vault http client")),
@@ -87,7 +88,8 @@ impl Client {
                 .expect("invalid leader address returned from vault");
             leader_address.path_segments_mut()
                 .expect("invalid base URL")
-                .push("v1");
+                .push("v1")
+                .push("");
             self.address = leader_address;
         }
         Ok(())
@@ -96,8 +98,7 @@ impl Client {
     fn post_json<S, D>(&self, key: &str, data: &S) -> Result<D, errors::Error>
         where S: serde::ser::Serialize,
         D: serde::de::DeserializeOwned {
-        let mut url = self.address.clone();
-        url.path_segments_mut().expect("invalid base URL").push(key);
+        let url = self.address.join(key.trim_left_matches(|c| c == '/'))?;
         let mut request = self.http.post(url)?;
         request.json(data)?;
         if self.token.is_some() {
@@ -111,8 +112,7 @@ impl Client {
     }
 
     fn get_response(&self, key: &str) -> Result<reqwest::Response, errors::Error> {
-        let mut url = self.address.clone();
-        url.path_segments_mut().expect("invalid base URL").push(key);
+        let url = self.address.join(key.trim_left_matches(|c| c == '/'))?;
         let mut request = self.http.get(url)?;
         if self.token.is_some() {
             request.header(VaultToken(self.token.as_ref().unwrap().clone()));

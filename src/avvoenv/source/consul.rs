@@ -20,7 +20,8 @@ impl Client {
         address.path_segments_mut()
             .expect("invalid base URL")
             .push("v1")
-            .push("kv");
+            .push("kv")
+            .push("");
         let client = match reqwest::Client::new() {
             Ok(value) => value,
             Err(_) => return Err(String::from("failed to initialise consul http client")),
@@ -29,8 +30,7 @@ impl Client {
     }
 
     fn get_response(&self, key: &str) -> Result<reqwest::Response, errors::Error> {
-        let mut url = self.address.clone();
-        url.path_segments_mut().expect("invalid base URL").push(key);
+        let mut url = self.address.join(key.trim_left_matches(|c| c == '/'))?;
         url.set_query(Some("raw=true"));
         let response = self.http.get(url)?.send()?;
         if !response.status().is_success() {
