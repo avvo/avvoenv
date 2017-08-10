@@ -60,7 +60,7 @@ impl Command for Write {
             }
         };
 
-        let env = match helpers::env_from_opts(matches) {
+        let env = match helpers::env_from_opts(&matches) {
             Ok(val) => val,
             Err(res) => return res,
         };

@@ -15,6 +15,7 @@ extern crate serde_yaml;
 extern crate rpassword;
 extern crate serde;
 extern crate shlex;
+extern crate glob;
 
 static CONSUL_HTTP_ADDR: &'static str = "http://127.0.0.1:8500";
 static VAULT_ADDR: &'static str = "https://127.0.0.1:8200";
@@ -25,16 +26,18 @@ pub fn add_fetch_opts(mut opts: getopts::Options) -> getopts::Options {
     opts.optopt("u", "vault", "set the vault host", "URL");
     opts.optflagopt("", "dev", "authenticate with vault", "USER");
     opts.optmulti("a", "add", "add an environment variable", "KEY=VALUE");
+    opts.optmulti("i", "include", "filter fetched variables", "PATTERN");
+    opts.optmulti("e", "exclude", "filter fetched variables", "PATTERN");
     opts.optopt("t", "vault-token", "set the vault token", "TOKEN");
     opts
 }
 
-pub fn env_from_opts(matches: getopts::Matches) -> Result<Env, commands::CommandResult> {
-    let service = match guess_service(&matches) {
+pub fn env_from_opts(matches: &getopts::Matches) -> Result<Env, commands::CommandResult> {
+    let service = match guess_service(matches) {
         Some(val) => val,
         None => return Err(ErrorWithHelpMessage(String::from("Required option 'service' missing.")))
     };
-    let consul_url = match opt_host(&matches, "consul", "CONSUL_HTTP_ADDR", CONSUL_HTTP_ADDR) {
+    let consul_url = match opt_host(matches, "consul", "CONSUL_HTTP_ADDR", CONSUL_HTTP_ADDR) {
         Ok(val) => val,
         Err(s) => return Err(ErrorWithMessage(s)),
     };
@@ -42,7 +45,7 @@ pub fn env_from_opts(matches: getopts::Matches) -> Result<Env, commands::Command
         Ok(val) => val,
         Err(e) => return Err(ErrorWithMessage(format!("{}", e))),
     };
-    let vault_url = match opt_host(&matches, "vault", "VAULT_ADDR", VAULT_ADDR) {
+    let vault_url = match opt_host(matches, "vault", "VAULT_ADDR", VAULT_ADDR) {
         Ok(val) => val,
         Err(s) => return Err(ErrorWithMessage(s)),
     };
@@ -51,7 +54,7 @@ pub fn env_from_opts(matches: getopts::Matches) -> Result<Env, commands::Command
         Err(e) => return Err(ErrorWithMessage(format!("{}", e))),
     };
     if matches.opt_present("dev") {
-        let username = match opt_env(&matches, "dev", "USER") {
+        let username = match opt_env(matches, "dev", "USER") {
             Some(val) => val,
             None => return Err(ErrorWithMessage(String::from("Could not determine dev user"))),
         };
@@ -62,24 +65,32 @@ pub fn env_from_opts(matches: getopts::Matches) -> Result<Env, commands::Command
     } else {
         let mut path = std::env::home_dir().unwrap_or(std::path::PathBuf::from("/"));
         path.push(".vault-token");
-        match opt_env_file(&matches, "vault-token", "VAULT_TOKEN", &path) {
+        match opt_env_file(matches, "vault-token", "VAULT_TOKEN", &path) {
             Some(val) => vault_client.token = Some(val),
             None => return Err(ErrorWithHelpMessage(String::from("Required option 'vault-token' missing."))),
         };
         let _ = vault_client.renew_token();
     };
+
+    let include = match patterns(matches.opt_strs("include")) {
+        Ok(v) => v,
+        Err(_) => return Err(ErrorWithMessage(String::from("Invalid include pattern."))),
+    };
+    let exclude = match patterns(matches.opt_strs("exclude")) {
+        Ok(v) => v,
+        Err(_) => return Err(ErrorWithMessage(String::from("Invalid exclude pattern."))),
+    };
+
     let add = matches.opt_strs("add");
     let extra: HashMap<String, String> = add.iter()
-        .map(|s| shlex::split(s))
-        .filter(|o| o.is_some())
-        .map(|o| o.unwrap())
+        .filter_map(|s| shlex::split(s))
         .flat_map(|v| v)
         .map(|pair| {
             let mut parts = pair.splitn(2, "=");
             (parts.next().unwrap().to_string(), parts.next().unwrap_or("").to_string())
         }).collect();
 
-    match avvoenv::Env::fetch(service, consul_client, vault_client, extra) {
+    match avvoenv::Env::fetch(service, consul_client, vault_client, include, exclude, extra) {
         Ok(env) => Ok(env),
         Err(e) => Err(ErrorWithMessage(format!("{}", e))),
     }
@@ -152,4 +163,19 @@ fn service_from_current_dir() -> Option<String> {
 
 fn format_service_name(input: &str) -> String {
     input.replace("_", "-").to_lowercase()
+}
+
+fn patterns(list: Vec<String>) -> Result<Vec<glob::Pattern>, glob::PatternError> {
+    let strings: Vec<String> = list.iter()
+        .filter_map(|s| shlex::split(s))
+        .flat_map(|v| v)
+        .flat_map(|s| {
+            let v: Vec<String> = s.split(",").map(String::from).collect();
+            v
+        }).collect();
+    let mut patterns = Vec::with_capacity(strings.len());
+    for s in strings {
+        patterns.push(glob::Pattern::new(&s)?);
+    }
+    Ok(patterns)
 }

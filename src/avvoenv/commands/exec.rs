@@ -18,7 +18,7 @@ impl Command for Exec {
     fn add_opts(&self, mut opts: getopts::Options) -> getopts::Options {
         opts = helpers::add_fetch_opts(opts);
         opts.optflag("F", "force", "ignore errors and always execute <command>");
-        opts.optflag("i", "isolate", "ignore the inherited env when executing <command>");
+        opts.optflag("I", "isolate", "ignore the inherited env when executing <command>");
         opts
     }
 
@@ -32,7 +32,7 @@ impl Command for Exec {
             command.env_clear();
         }
         let ignore_errors = matches.opt_present("F");
-        match helpers::env_from_opts(matches) {
+        match helpers::env_from_opts(&matches) {
             Ok(env) => {
                 command.envs(env.vars().iter());
                 ErrorWithMessage(format!("{}", command.exec()))

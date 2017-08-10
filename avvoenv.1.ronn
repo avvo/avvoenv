@@ -8,8 +8,10 @@ avvoenv(1) -- fetch service environment variables
 `avvoenv` `exec` [`-a`|`--add` <key>=<value>]
                  [`-c`|`--consul` <url>]
                  [`--dev` [<user>]]
+                 [`-e`|`--exclude` <pattern>]
                  [`-F`|`--force`]
-                 [`-i`|`--isolate`]
+                 [`-I`|`--isolate`]
+                 [`-i`|`--include` <pattern>]
                  [`-s`|`--service` <name>]
                  [`-t`|`--vault-token` <token>]
                  [`-u`|`--vault` <url>]
@@ -18,7 +20,9 @@ avvoenv(1) -- fetch service environment variables
 `avvoenv` `write` [`-a`|`--add` <key>=<value>]
                   [`-c`|`--consul` <url>]
                   [`--dev` [<user>]]
+                  [`-e`|`--exclude` <pattern>]
                   [`-f`|`--format` <format>]
+                  [`-i`|`--include` <pattern>]
                   [`-s`|`--service` <name>]
                   [`-t`|`--vault-token` <token>]
                   [`-u`|`--vault` <url>]
@@ -54,6 +58,15 @@ current service, or canonicalise the name given with the `--service` option.
     <vault-token>. Will prompt for a password on standard input. If the <user>
     argument is provided it will override the `USER` environment variable.
 
+  * `-e`, `--exclude` <pattern>:
+    Exclude any fetched environment variables matching <pattern>, where
+    <pattern> is a shell glob pattern.
+    `?` matches any single character.
+    `*` matches any sequence of characters or nothing.
+    `[...]` matches any character inside the brackets, with `-` specifying a
+    range eg `[0-9]` or `[a-z]`
+    `[!...]` is the inverse of `[...]`
+
   * `-F`, `--force`:
     Ignore errors and always execute <command>. If any errors are encountered
     then only the inherited environment variables will be provided.
@@ -67,8 +80,17 @@ current service, or canonicalise the name given with the `--service` option.
   * `-h`, `--help`:
     Print the help output and exit.
 
-  * `-i`, `--isolate`:
+  * `-I`, `--isolate`:
     Ignores the inherited environment variables when executing <command>.
+
+  * `-i`, `--include` <pattern>:
+    Exclude all fetched environment variables not matching <pattern>, where
+    <pattern> is a shell glob pattern.
+    `?` matches any single character.
+    `*` matches any sequence of characters or nothing.
+    `[...]` matches any character inside the brackets, with `-` specifying a
+    range eg `[0-9]` or `[a-z]`
+    `[!...]` is the inverse of `[...]`
 
   * `-s`, `--service` <name>:
     Set the service name, overriding the `SERVICE` environment variable.

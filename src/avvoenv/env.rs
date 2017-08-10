@@ -8,35 +8,38 @@ use avvoenv::source::consul;
 use avvoenv::source::vault;
 
 extern crate serde_json;
+extern crate glob;
 
 pub struct Env {
-    consul: consul::Client,
-    vault: vault::Client,
-    map: std::collections::HashMap<String, String>
+    map: std::collections::HashMap<String, String>,
 }
 
 impl Env {
-    fn new(consul: consul::Client, vault: vault::Client, map: HashMap<String, String>) -> Env {
-        Env { consul: consul, vault: vault, map: map }
-    }
+    pub fn fetch(service: String, consul: consul::Client, vault: vault::Client, include: Vec<glob::Pattern>, exclude: Vec<glob::Pattern>, extra: HashMap<String, String>) -> Result<Env, String> {
+        let mut map = std::collections::HashMap::new();
 
-    pub fn fetch(service: String, consul: consul::Client, vault: vault::Client, map: HashMap<String, String>) -> Result<Env, String> {
-        let mut env = Env::new(consul, vault, map);
-        Env::do_fetch(&env.consul, "global", &mut env.map)?;
-        Env::do_fetch(&env.vault, "global", &mut env.map)?;
-        match Env::get_dependencies(&env.consul, &service) {
-            Ok(map) => env.map.extend(map),
+        Env::do_fetch(&consul, "global", &mut map)?;
+        Env::do_fetch(&vault, "global", &mut map)?;
+        match Env::get_dependencies(&consul, &service) {
+            Ok(m) => map.extend(m),
             Err(errors::Error::Empty) => (),
-            Err(e) => return Err(format!("error fetching from {}/{}: {}", source::Source::address(&env.consul), &service, e)),
+            Err(e) => return Err(format!("error fetching from {}/{}: {}", source::Source::address(&consul), &service, e)),
         }
-        match Env::get_generated(&env.consul, &service) {
-            Ok(map) => env.map.extend(map),
+        match Env::get_generated(&consul, &service) {
+            Ok(m) => map.extend(m),
             Err(errors::Error::Empty) => (),
-            Err(e) => return Err(format!("error fetching from {}/{}: {}", source::Source::address(&env.consul), &service, e)),
+            Err(e) => return Err(format!("error fetching from {}/{}: {}", source::Source::address(&consul), &service, e)),
         }
-        Env::do_fetch(&env.consul, &service, &mut env.map)?;
-        Env::do_fetch(&env.vault, &service, &mut env.map)?;
-        Ok(env)
+        Env::do_fetch(&consul, &service, &mut map)?;
+        Env::do_fetch(&vault, &service, &mut map)?;
+
+        map.retain(|key, _| {
+            (include.is_empty() || include.iter().any(|p| p.matches(key))) &&
+                !exclude.iter().any(|p| p.matches(key))
+        });
+
+        map.extend(extra);
+        Ok(Env { map: map })
     }
 
     pub fn vars(&self) -> &HashMap<String, String> {
