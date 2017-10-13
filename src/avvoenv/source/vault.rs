@@ -64,7 +64,7 @@ impl Client {
         Ok(Client { address: address, token: None, http: client })
     }
 
-    #[must_use]
+    // #[must_use]
     pub fn ldap_auth(&mut self, username: String, password: String) -> Result<(), errors::Error> {
         // workaround Vault (0.5.2?) being janky and (ldap?) auth only working
         // against the leader
@@ -80,7 +80,7 @@ impl Client {
         Ok(())
     }
 
-    #[must_use]
+    // #[must_use]
     fn resolve_leader(&mut self) -> Result<(), errors::Error> {
         let info: LeaderResponse = self.get_response("/sys/leader")?.json()?;
         if info.ha_enabled && !info.is_self {
