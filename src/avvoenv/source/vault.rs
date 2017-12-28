@@ -21,6 +21,11 @@ pub struct AuthRequest {
     pub password: String,
 }
 
+#[derive(Serialize)]
+pub struct AuthAppIdRequest {
+    pub user_id: String,
+}
+
 #[derive(Deserialize)]
 pub struct AuthResponse {
     pub client_token: String,
@@ -71,6 +76,14 @@ impl Client {
         self.resolve_leader()?;
         let request = AuthRequest { password: password };
         let response: AuthResponseWrapper = self.post_json(&format!("auth/ldap/login/{}", username), &request)?;
+        self.token = Some(response.auth.client_token);
+        Ok(())
+    }
+
+    pub fn app_id_auth(&mut self, app_id: String, user_id: String) -> Result<(), errors::Error> {
+        self.resolve_leader()?;
+        let request = AuthAppIdRequest { user_id: user_id };
+        let response: AuthResponseWrapper = self.post_json(&format!("auth/app-id/login/{}", app_id), &request)?;
         self.token = Some(response.auth.client_token);
         Ok(())
     }

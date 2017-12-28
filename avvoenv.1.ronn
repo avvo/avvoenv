@@ -53,6 +53,10 @@ current service, or canonicalise the name given with the `--service` option.
     Set the Consul URL, overriding the `CONSUL_HTTP_ADDR` environment variable,
     and the default of <http://127.0.0.1:8500>.
 
+  * `--app-id` [<app-id>] `--app-user` [<user-id>]:
+    Authenticate with Vault via app-id as <app-id>/<user>. If the <user>
+    argument is provided it will override the `USER` environment variable.
+
   * `--dev` [<user>]:
     Authenticate with Vault via LDAP as <user> instead of with the
     <vault-token>. Will prompt for a password on standard input. If the <user>
