@@ -29,8 +29,8 @@ pub fn add_fetch_opts(mut opts: getopts::Options) -> getopts::Options {
     opts.optmulti("i", "include", "filter fetched variables", "PATTERN");
     opts.optmulti("e", "exclude", "filter fetched variables", "PATTERN");
     opts.optopt("t", "vault-token", "set the vault token", "TOKEN");
-    opts.optopt("s", "app-user", "authenticate with vault app-user", "APP_USER");
-    opts.optopt("p", "app-id", "authenticate with vault app-id", "APP_ID");
+    opts.optopt("s", "app-user", "authenticate with vault app-user", "VAULT_APP_USER");
+    opts.optopt("p", "app-id", "authenticate with vault app-id", "VAULT_APP_ID");
     opts
 }
 
@@ -64,12 +64,8 @@ pub fn env_from_opts(matches: &getopts::Matches) -> Result<Env, commands::Comman
         if vault_client.ldap_auth(username, password).is_err() {
             return Err(ErrorWithMessage(String::from("Authentication failed")));
         };
-    } else if matches.opt_present("app-id") {
-        let app_id = match opt_env(matches, "app-id", "APP_ID") {
-            Some(val) => val,
-            None => return Err(ErrorWithMessage(String::from("Could not determine app-id"))),
-        };
-        let app_user = match opt_env(matches, "app-user", "APP_USER") {
+    } else if let Some(app_id) = opt_env(matches, "app-id", "VAULT_APP_ID") {
+        let app_user = match opt_env(matches, "app-user", "VAULT_APP_USER") {
             Some(val) => val,
             None => return Err(ErrorWithMessage(String::from("Could not determine app-user"))),
         };
