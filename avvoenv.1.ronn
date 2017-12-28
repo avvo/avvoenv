@@ -12,6 +12,8 @@ avvoenv(1) -- fetch service environment variables
                  [`-F`|`--force`]
                  [`-I`|`--isolate`]
                  [`-i`|`--include` <pattern>]
+                 [`-p`|`--app-id` <app-id>]
+                 [`-r`|`--app-user` <app-user>]
                  [`-s`|`--service` <name>]
                  [`-t`|`--vault-token` <token>]
                  [`-u`|`--vault` <url>]
@@ -23,6 +25,8 @@ avvoenv(1) -- fetch service environment variables
                   [`-e`|`--exclude` <pattern>]
                   [`-f`|`--format` <format>]
                   [`-i`|`--include` <pattern>]
+                  [`-p`|`--app-id` <app-id>]
+                  [`-r`|`--app-user` <app-user>]
                   [`-s`|`--service` <name>]
                   [`-t`|`--vault-token` <token>]
                   [`-u`|`--vault` <url>]
@@ -49,15 +53,17 @@ current service, or canonicalise the name given with the `--service` option.
     and/or with a list of multiple space-separated key value pairs. In the
     second case the argument must be quoted.
 
+  * `--app-id` [<app-id>]:
+    Authenticate with Vault via app-id. If the <app-id> argument is provided
+    it will override the `VAULT_APP_ID` environment variable.
+
+  * `--app-user` [<app-user>]:
+    Set the user-id for use with Vault app-id authentication. If the <app-user>
+    argument is provided it will override the `VAULT_APP_USER` environment variable.
+
   * `-c`, `--consul` <url>:
     Set the Consul URL, overriding the `CONSUL_HTTP_ADDR` environment variable,
     and the default of <http://127.0.0.1:8500>.
-
-  * `--app-id` [<app-id>] `--app-user` [<app-user>]:
-    Authenticate with Vault via app-id as <app-id>/<app-user>. If the <app-id>
-    argument is provided it will override the `VAULT_APP_ID` environment variable,
-    and if the <app-user> argument is provided it will override the `VAULT_APP_USER`
-    environment variable.
 
   * `--dev` [<user>]:
     Authenticate with Vault via LDAP as <user> instead of with the
@@ -166,6 +172,12 @@ outputs to standard output):
 
   * `VAULT_ADDR`:
     The Vault URL, overriding the default of <https://127.0.0.1:8200>.
+
+  * `VAULT_APP_ID`:
+    The application ID used with Vault app-id authentication.
+
+  * `VAULT_APP_USER`:
+    The application user ID used with Vault app-id authentication.
 
   * `VAULT_TOKEN`:
     The token used to authenticate with Vault, overriding the `~/.vault-token`

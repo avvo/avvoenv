@@ -29,7 +29,7 @@ pub fn add_fetch_opts(mut opts: getopts::Options) -> getopts::Options {
     opts.optmulti("i", "include", "filter fetched variables", "PATTERN");
     opts.optmulti("e", "exclude", "filter fetched variables", "PATTERN");
     opts.optopt("t", "vault-token", "set the vault token", "TOKEN");
-    opts.optopt("s", "app-user", "authenticate with vault app-user", "VAULT_APP_USER");
+    opts.optopt("r", "app-user", "authenticate with vault app-user", "VAULT_APP_USER");
     opts.optopt("p", "app-id", "authenticate with vault app-id", "VAULT_APP_ID");
     opts
 }

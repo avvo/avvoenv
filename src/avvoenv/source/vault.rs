@@ -81,8 +81,7 @@ impl Client {
     }
 
     pub fn app_id_auth(&mut self, app_id: String, user_id: String) -> Result<(), errors::Error> {
-        self.resolve_leader()?;
-        let request = AuthAppIdRequest { user_id: user_id };
+        let request = AuthAppIdRequest { user_id };
         let response: AuthResponseWrapper = self.post_json(&format!("auth/app-id/login/{}", app_id), &request)?;
         self.token = Some(response.auth.client_token);
         Ok(())
