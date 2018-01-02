@@ -96,11 +96,11 @@ current service, or canonicalise the name given with the `--service` option.
     range eg `[0-9]` or `[a-z]`
     `[!...]` is the inverse of `[...]`
 
-  * `-p`, `--app-id` [<app-id>]:
+  * `-p`, `--app-id` <app-id>:
     Authenticate with Vault via app-id. If the <app-id> argument is provided
     it will override the `VAULT_APP_ID` environment variable.
 
-  * `-r`, `--app-user` [<app-user>]:
+  * `-r`, `--app-user` <app-user>:
     Set the user-id for use with Vault app-id authentication. If the <app-user>
     argument is provided it will override the `VAULT_APP_USER` environment variable.
 
