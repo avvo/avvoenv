@@ -29,6 +29,8 @@ pub fn add_fetch_opts(mut opts: getopts::Options) -> getopts::Options {
     opts.optmulti("i", "include", "filter fetched variables", "PATTERN");
     opts.optmulti("e", "exclude", "filter fetched variables", "PATTERN");
     opts.optopt("t", "vault-token", "set the vault token", "TOKEN");
+    opts.optopt("r", "app-user", "authenticate with vault app-user", "VAULT_APP_USER");
+    opts.optopt("p", "app-id", "authenticate with vault app-id", "VAULT_APP_ID");
     opts
 }
 
@@ -60,6 +62,14 @@ pub fn env_from_opts(matches: &getopts::Matches) -> Result<Env, commands::Comman
         };
         let password = rpassword::prompt_password_stderr(&format!("Password for {}:", username)).expect("couldn't get password");
         if vault_client.ldap_auth(username, password).is_err() {
+            return Err(ErrorWithMessage(String::from("Authentication failed")));
+        };
+    } else if let Some(app_id) = opt_env(matches, "app-id", "VAULT_APP_ID") {
+        let app_user = match opt_env(matches, "app-user", "VAULT_APP_USER") {
+            Some(val) => val,
+            None => return Err(ErrorWithMessage(String::from("Could not determine app-user"))),
+        };
+        if vault_client.app_id_auth(app_id, app_user).is_err() {
             return Err(ErrorWithMessage(String::from("Authentication failed")));
         };
     } else {
