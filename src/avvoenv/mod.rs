@@ -1,5 +1,6 @@
 pub mod commands;
 pub mod source;
+pub mod rancher_metadata;
 mod env;
 pub use self::env::Env;
 pub mod errors;

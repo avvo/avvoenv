@@ -12,6 +12,7 @@ avvoenv(1) -- fetch service environment variables
                  [`-F`|`--force`]
                  [`-I`|`--isolate`]
                  [`-i`|`--include` <pattern>]
+                 [`--no-rancher-metadata`]
                  [`-p`|`--app-id` <app-id>]
                  [`-r`|`--app-user` <app-user>]
                  [`-s`|`--service` <name>]
@@ -25,6 +26,7 @@ avvoenv(1) -- fetch service environment variables
                   [`-e`|`--exclude` <pattern>]
                   [`-f`|`--format` <format>]
                   [`-i`|`--include` <pattern>]
+                  [`--no-rancher-metadata`]
                   [`-p`|`--app-id` <app-id>]
                   [`-r`|`--app-user` <app-user>]
                   [`-s`|`--service` <name>]
@@ -95,6 +97,9 @@ current service, or canonicalise the name given with the `--service` option.
     `[...]` matches any character inside the brackets, with `-` specifying a
     range eg `[0-9]` or `[a-z]`
     `[!...]` is the inverse of `[...]`
+
+  * `--no-rancher-metadata`:
+    Skip environment variables fetched from the Rancher metadata.
 
   * `-p`, `--app-id` <app-id>:
     Authenticate with Vault via app-id. If the <app-id> argument is provided

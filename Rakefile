@@ -34,7 +34,7 @@ file "target/release/avvoenv" => FileList["src/**/*.rs"] do |t|
   `cargo build --release`
 end
 
-file "target/x86_64-unknown-linux-musl/release/avvoenv" => FileList["src/**/*.rs"].add(".rust-musl-builder")  do |t|
+file "target/x86_64-unknown-linux-musl/release/avvoenv" => FileList["src/**/*.rs"]  do |t|
   `docker build -t avvoenv-builder .`
   `docker run -v "$(pwd):/volume" -t avvoenv-builder cargo build --release`
 end

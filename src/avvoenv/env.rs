@@ -3,6 +3,7 @@ use std::result::Result;
 use std::collections::HashMap;
 
 use avvoenv::errors;
+use avvoenv::rancher_metadata;
 use avvoenv::source;
 use avvoenv::source::consul;
 use avvoenv::source::vault;
@@ -15,8 +16,12 @@ pub struct Env {
 }
 
 impl Env {
-    pub fn fetch(service: String, consul: consul::Client, vault: vault::Client, include: Vec<glob::Pattern>, exclude: Vec<glob::Pattern>, extra: HashMap<String, String>) -> Result<Env, String> {
+    pub fn fetch(service: String, consul: consul::Client, vault: vault::Client, rancher: Option<rancher_metadata::Client>, include: Vec<glob::Pattern>, exclude: Vec<glob::Pattern>, extra: HashMap<String, String>) -> Result<Env, String> {
         let mut map = std::collections::HashMap::new();
+
+        if let Some(client) = rancher {
+            map.extend(client.info().map_err(|e| e.to_string())?);
+        }
 
         Env::do_fetch(&consul, "global", &mut map)?;
         Env::do_fetch(&vault, "global", &mut map)?;

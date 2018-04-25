@@ -6,6 +6,7 @@ use avvoenv;
 use avvoenv::Env;
 use avvoenv::commands;
 use avvoenv::commands::CommandResult::*;
+use avvoenv::rancher_metadata;
 use avvoenv::source::vault;
 use avvoenv::source::consul;
 
@@ -31,6 +32,7 @@ pub fn add_fetch_opts(mut opts: getopts::Options) -> getopts::Options {
     opts.optopt("t", "vault-token", "set the vault token", "TOKEN");
     opts.optopt("r", "app-user", "authenticate with vault app-user", "VAULT_APP_USER");
     opts.optopt("p", "app-id", "authenticate with vault app-id", "VAULT_APP_ID");
+    opts.optflag("", "no-rancher-metadata", "skip variables from Rancher metadata");
     opts
 }
 
@@ -100,7 +102,21 @@ pub fn env_from_opts(matches: &getopts::Matches) -> Result<Env, commands::Comman
             (parts.next().unwrap().to_string(), parts.next().unwrap_or("").to_string())
         }).collect();
 
-    match avvoenv::Env::fetch(service, consul_client, vault_client, include, exclude, extra) {
+    let rancher_client = if matches.opt_present("no-rancher-metadata") {
+        None
+    } else {
+        let url_string = "http://rancher-metadata";
+        let rancher_url = match reqwest::Url::parse(url_string) {
+            Ok(val) => val,
+            Err(e) => return Err(ErrorWithMessage(format!("{} for {:?}", e, url_string))),
+        };
+        match rancher_metadata::Client::new(rancher_url) {
+            Ok(val) => Some(val),
+            Err(e) => return Err(ErrorWithMessage(format!("{}", e))),
+        }
+    };
+
+    match avvoenv::Env::fetch(service, consul_client, vault_client, rancher_client, include, exclude, extra) {
         Ok(env) => Ok(env),
         Err(e) => Err(ErrorWithMessage(format!("{}", e))),
     }
