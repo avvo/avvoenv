@@ -18,7 +18,12 @@ struct Container {
 
 #[derive(Deserialize)]
 struct Host {
-    hostname: String,
+    labels: Labels,
+}
+
+#[derive(Deserialize)]
+struct Labels {
+    fqdn: String,
 }
 
 #[derive(Deserialize)]
@@ -34,7 +39,7 @@ impl std::iter::IntoIterator for Info {
     fn into_iter(self) -> Self::IntoIter {
         vec![
             (String::from("RANCHER_IP"), self.container.primary_ip),
-            (String::from("STATSD_HOST"), self.host.hostname),
+            (String::from("STATSD_HOST"), self.host.labels.fqdn),
         ].into_iter()
     }
 }
