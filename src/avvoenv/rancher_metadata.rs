@@ -72,8 +72,21 @@ impl Client {
     }
 
     fn get<T>(&self, path: &str) -> Result<T, errors::Error>
-        where T: serde::de::DeserializeOwned {
-        Ok(self.get_response(path)?.json()?)
+        where T: serde::de::DeserializeOwned
+    {
+        let mut tries = 0;
+        loop {
+            match self.get_response(path)?.json() {
+                Ok(v) => return Ok(v),
+                Err(e) => {
+                    tries += 1;
+                    if tries > 5 {
+                        return Err(e.into());
+                    }
+                    std::thread::sleep(std::time::Duration::from_secs(tries));
+                }
+            }
+        }
     }
 
     pub fn info(&self) -> Result<Info, errors::Error> {
