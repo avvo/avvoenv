@@ -5,3 +5,6 @@ avvoenv-*.zip
 /avvoenv/
 .gem
 .rust-musl-builder/
+share/
+bin/*
+!bin/.keep
