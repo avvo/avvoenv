@@ -26,6 +26,12 @@ pub struct AuthAppIdRequest {
     pub user_id: String,
 }
 
+#[derive(Serialize)]
+pub struct AuthKubernetesRequest {
+    pub jwt: String,
+    pub role: String
+}
+
 #[derive(Deserialize)]
 pub struct AuthResponse {
     pub client_token: String,
@@ -83,6 +89,16 @@ impl Client {
     pub fn app_id_auth(&mut self, app_id: String, user_id: String) -> Result<(), errors::Error> {
         let request = AuthAppIdRequest { user_id };
         let response: AuthResponseWrapper = self.post_json(&format!("auth/app-id/login/{}", app_id), &request)?;
+        self.token = Some(response.auth.client_token);
+        Ok(())
+    }
+
+    pub fn kubernetes_auth(&mut self, role: String) -> Result<(), errors::Error> {
+        let mut file = std::fs::File::open("/var/run/secrets/kubernetes.io/serviceaccount/token")?;
+        let mut jwt = String::new();
+        file.read_to_string(&mut jwt)?;
+        let request = AuthKubernetesRequest { jwt, role };
+        let response: AuthResponseWrapper = self.post_json(&format!("auth/kubernetes/login"), &request)?;
         self.token = Some(response.auth.client_token);
         Ok(())
     }
