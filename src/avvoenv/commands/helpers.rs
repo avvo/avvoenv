@@ -32,7 +32,6 @@ pub fn add_fetch_opts(mut opts: getopts::Options) -> getopts::Options {
     opts.optopt("t", "vault-token", "set the vault token", "TOKEN");
     opts.optopt("r", "app-user", "authenticate with vault app-user", "VAULT_APP_USER");
     opts.optopt("p", "app-id", "authenticate with vault app-id", "VAULT_APP_ID");
-    opts.optopt("k", "kubernetes-role", "authenticate with vault role", "KUBERNETES_ROLE");
     opts.optflag("", "no-rancher-metadata", "skip variables from Rancher metadata");
     opts
 }
@@ -75,10 +74,10 @@ pub fn env_from_opts(matches: &getopts::Matches) -> Result<Env, commands::Comman
         if vault_client.app_id_auth(app_id, app_user).is_err() {
             return Err(ErrorWithMessage(String::from("Authentication failed")));
         };
-    } else if let Some(role) = opt_env(matches, "kubernetes-role", "KUBERNETES_ROLE") {
-        if vault_client.kubernetes_auth(role).is_err() {
-            return Err(ErrorWithMessage(String::from("Authentication failed")))
-        }
+    } else if std::path::Path::new("/var/run/secrets/kubernetes.io/serviceaccount/token").exists() {
+        if vault_client.kubernetes_auth(service).is_err() {
+            return Err(ErrorWithMessage(String::from("Authentication failed")));
+        };
     } else {
         let mut path = std::env::home_dir().unwrap_or(std::path::PathBuf::from("/"));
         path.push(".vault-token");
