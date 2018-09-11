@@ -93,11 +93,11 @@ impl Client {
         Ok(())
     }
 
-    pub fn kubernetes_auth(&mut self, service_name: String) -> Result<(), errors::Error> {
+    pub fn kubernetes_auth(&mut self, role: String) -> Result<(), errors::Error> {
         let mut file = std::fs::File::open("/var/run/secrets/kubernetes.io/serviceaccount/token")?;
         let mut jwt = String::new();
         file.read_to_string(&mut jwt)?;
-        let request = AuthKubernetesRequest { jwt, role: service_name };
+        let request = AuthKubernetesRequest { jwt, role };
         let response: AuthResponseWrapper = self.post_json(&format!("auth/kubernetes/login"), &request)?;
         self.token = Some(response.auth.client_token);
         Ok(())

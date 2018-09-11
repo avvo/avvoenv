@@ -75,8 +75,9 @@ pub fn env_from_opts(matches: &getopts::Matches) -> Result<Env, commands::Comman
             return Err(ErrorWithMessage(String::from("Authentication failed")));
         };
     } else if std::path::Path::new("/var/run/secrets/kubernetes.io/serviceaccount/token").exists() {
-        if vault_client.kubernetes_auth(service).is_err() {
-            return Err(ErrorWithMessage(String::from("Authentication failed")));
+        let role: String = service.to_string();
+        if vault_client.kubernetes_auth(role).is_err() {
+            return Err(ErrorWithMessage(String::from("Kubernetes authentication failed")));
         };
     } else {
         let mut path = std::env::home_dir().unwrap_or(std::path::PathBuf::from("/"));
