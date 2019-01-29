@@ -1,0 +1,13 @@
+[package]
+name = "avvoenv"
+version = "2.0.0"
+authors = ["Avvo Infrastructure Team <infrastructure@avvo.com>"]
+edition = "2018"
+license = "MIT"
+
+[dependencies]
+log = "0.4"
+serde = "1.0"
+serde_yaml = "0.8"
+stderrlog = "0.4"
+structopt = "0.2"
