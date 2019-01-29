@@ -217,9 +217,9 @@ fn get_service(service: Option<String>) -> Result<String, Box<dyn std::error::Er
                 if let Some(value) = reqs.get("service_name") {
                     service = Some(serde_yaml::to_string(value)?);
                 }
-            },
+            }
             Err(ref e) if e.kind() == std::io::ErrorKind::NotFound => (),
-            Err(e) => Err(e)?
+            Err(e) => Err(e)?,
         };
     };
     if service.is_none() {
