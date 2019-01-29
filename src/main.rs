@@ -238,5 +238,10 @@ fn get_service(service: Option<String>) -> Result<String, Box<dyn std::error::Er
 }
 
 fn plugin(name: String, args: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
-    unimplemented!()
+    use std::os::unix::process::CommandExt;
+
+    let name = format!(concat!(env!("CARGO_PKG_NAME"), "-{}"), name);
+    let mut command = std::process::Command::new(&name);
+    command.args(args);
+    Err(Box::new(command.exec()))
 }
