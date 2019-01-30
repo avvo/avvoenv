@@ -29,8 +29,20 @@ impl From<serde_json::error::Error> for Error {
 }
 
 impl Client {
-    pub fn new(address: Url) -> Result<Client, Error> {
-        unimplemented!()
+    pub fn new(mut address: Url) -> Result<Client, Error> {
+        if address.cannot_be_a_base() {
+            return Err(Error);
+        };
+        address
+            .path_segments_mut()
+            .expect("invalid base URL")
+            .push("v1")
+            .push("kv")
+            .push("");
+        Ok(Client {
+            address,
+            http: reqwest::Client::new(),
+        })
     }
 
     pub fn get<T>(&self, key: &str) -> Result<Option<T>, Error>
