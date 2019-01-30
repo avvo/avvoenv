@@ -69,7 +69,7 @@ struct Opts {
 }
 
 #[derive(StructOpt, Debug)]
-pub enum Subcommand {
+enum Subcommand {
     /// Execute the given command with the fetched environment variables
     #[structopt(name = "exec", author = "", version = "")]
     Exec(ExecOpts),
@@ -82,19 +82,23 @@ pub enum Subcommand {
 }
 
 #[derive(StructOpt, Debug)]
-#[structopt(raw(setting = "TrailingVarArg"))]
-pub struct ExecOpts {
+struct FetchOpts {
     /// set the service name
     #[structopt(short = "s", long = "service", value_name = "NAME", env = "SERVICE")]
     service: Option<String>,
     /// set the consul host
-    #[structopt(short = "c", long = "consul", value_name = "URL")]
+    #[structopt(
+        short = "c",
+        long = "consul",
+        value_name = "URL",
+        env = "CONSUL_HTTP_ADDR"
+    )]
     consul: String,
     /// set the vault host
-    #[structopt(short = "u", long = "vault", value_name = "URL")]
+    #[structopt(short = "u", long = "vault", value_name = "URL", env = "VAULT_ADDR")]
     vault: String,
     /// authenticate with vault
-    #[structopt(long = "dev", value_name = "USER")]
+    #[structopt(long = "dev", value_name = "USER", env = "USER")]
     user: Option<String>,
     /// add an environment variable
     #[structopt(short = "a", long = "add", value_name = "KEY=VALUE")]
@@ -106,14 +110,36 @@ pub struct ExecOpts {
     #[structopt(short = "e", long = "exclude", value_name = "PATTERN")]
     exclude: Vec<String>,
     /// set the vault token
-    #[structopt(short = "t", long = "vault-token", value_name = "TOKEN")]
+    #[structopt(
+        short = "t",
+        long = "vault-token",
+        value_name = "TOKEN",
+        env = "VAULT_TOKEN"
+    )]
     token: String,
     /// authenticate with vault app-user
-    #[structopt(short = "r", long = "app-user", value_name = "VAULT_APP_USER")]
+    #[structopt(
+        short = "r",
+        long = "app-user",
+        value_name = "VAULT_APP_USER",
+        env = "VAULT_APP_USER"
+    )]
     app_user: String,
     /// authenticate with vault app-id
-    #[structopt(short = "p", long = "app-id", value_name = "VAULT_APP_ID")]
+    #[structopt(
+        short = "p",
+        long = "app-id",
+        value_name = "VAULT_APP_ID",
+        env = "VAULT_APP_ID"
+    )]
     app_id: String,
+}
+
+#[derive(StructOpt, Debug)]
+#[structopt(raw(setting = "TrailingVarArg"))]
+struct ExecOpts {
+    #[structopt(flatten)]
+    fetch: FetchOpts,
     /// ignore errors and always execute <command>
     #[structopt(short = "F", long = "force")]
     force: bool,
@@ -131,37 +157,9 @@ fn exec(opts: ExecOpts) -> Result<(), Box<dyn std::error::Error>> {
 
 #[derive(StructOpt, Debug)]
 #[structopt(raw(setting = "TrailingVarArg"))]
-pub struct WriteOpts {
-    /// set the service name
-    #[structopt(short = "s", long = "service", value_name = "NAME", env = "SERVICE")]
-    service: Option<String>,
-    /// set the consul host
-    #[structopt(short = "c", long = "consul", value_name = "URL")]
-    consul: String,
-    /// set the vault host
-    #[structopt(short = "u", long = "vault", value_name = "URL")]
-    vault: String,
-    /// authenticate with vault
-    #[structopt(long = "dev", value_name = "USER")]
-    user: Option<String>,
-    /// add an environment variable
-    #[structopt(short = "a", long = "add", value_name = "KEY=VALUE")]
-    add: Vec<String>,
-    /// filter fetched variables
-    #[structopt(short = "i", long = "include", value_name = "PATTERN")]
-    include: Vec<String>,
-    /// filter fetched variables
-    #[structopt(short = "e", long = "exclude", value_name = "PATTERN")]
-    exclude: Vec<String>,
-    /// set the vault token
-    #[structopt(short = "t", long = "vault-token", value_name = "TOKEN")]
-    token: String,
-    /// authenticate with vault app-user
-    #[structopt(short = "r", long = "app-user", value_name = "VAULT_APP_USER")]
-    app_user: String,
-    /// authenticate with vault app-id
-    #[structopt(short = "p", long = "app-id", value_name = "VAULT_APP_ID")]
-    app_id: String,
+struct WriteOpts {
+    #[structopt(flatten)]
+    fetch: FetchOpts,
     /// ignore errors and always execute <command>
     #[structopt(short = "f", long = "format", value_name = "FORMAT")]
     format: Option<String>,
@@ -175,7 +173,7 @@ fn write(opts: WriteOpts) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[derive(StructOpt, Debug)]
-pub struct ServiceOpts {
+struct ServiceOpts {
     /// set the service name
     #[structopt(short = "s", long = "service", value_name = "NAME", env = "SERVICE")]
     service: Option<String>,
