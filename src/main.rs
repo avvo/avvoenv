@@ -1,3 +1,5 @@
+mod consul;
+
 use std::fmt;
 
 use log::{debug, error};
