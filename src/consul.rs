@@ -1,4 +1,4 @@
-use std::any::TypeId;
+use std::{any::TypeId, fmt};
 
 use serde_json::{from_value, json};
 use url::Url;
@@ -8,7 +8,16 @@ pub struct Client {
     http: reqwest::Client,
 }
 
+#[derive(Debug)]
 pub struct Error;
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "error")
+    }
+}
+
+impl std::error::Error for Error {}
 
 impl From<url::ParseError> for Error {
     fn from(e: url::ParseError) -> Error {
@@ -44,8 +53,12 @@ impl Client {
             http: reqwest::Client::new(),
         })
     }
+}
 
-    pub fn get<T>(&self, key: &str) -> Result<Option<T>, Error>
+impl crate::Client for Client {
+    type Error = Error;
+
+    fn get<T>(&self, key: &str) -> Result<Option<T>, Error>
     where
         T: serde::de::DeserializeOwned + 'static,
     {

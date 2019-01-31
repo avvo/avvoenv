@@ -1,8 +1,9 @@
 mod consul;
 
-use std::fmt;
+use std::{collections::HashMap, fmt, os::unix::process::CommandExt};
 
-use log::{debug, error};
+use log::{debug, error, warn};
+use serde::Deserialize;
 use structopt::{
     clap::AppSettings::{
         ArgRequiredElseHelp, ArgsNegateSubcommands, DisableHelpSubcommand, TrailingVarArg,
@@ -10,6 +11,7 @@ use structopt::{
     },
     StructOpt,
 };
+use url::Url;
 
 fn main() {
     let opts = Opts::from_args();
@@ -93,13 +95,13 @@ struct FetchOpts {
         value_name = "URL",
         env = "CONSUL_HTTP_ADDR"
     )]
-    consul: String,
+    consul: Url,
     /// set the vault host
     #[structopt(short = "u", long = "vault", value_name = "URL", env = "VAULT_ADDR")]
-    vault: String,
+    vault: Url,
     /// authenticate with vault
-    #[structopt(long = "dev", value_name = "USER", env = "USER")]
-    user: Option<String>,
+    #[structopt(long = "dev")]
+    dev: bool,
     /// add an environment variable
     #[structopt(short = "a", long = "add", value_name = "KEY=VALUE")]
     add: Vec<String>,
@@ -114,25 +116,33 @@ struct FetchOpts {
         short = "t",
         long = "vault-token",
         value_name = "TOKEN",
-        env = "VAULT_TOKEN"
+        env = "VAULT_TOKEN",
+        raw(
+            required_unless_one = r#"&["dev", "app_user", "app_id"]"#,
+            conflicts_with_all = r#"&["dev", "app_user", "app_id"]"#
+        )
     )]
-    token: String,
+    token: Option<String>,
     /// authenticate with vault app-user
     #[structopt(
         short = "r",
         long = "app-user",
         value_name = "VAULT_APP_USER",
+        requires = "app_id",
+        conflicts_with = "dev",
         env = "VAULT_APP_USER"
     )]
-    app_user: String,
+    app_user: Option<String>,
     /// authenticate with vault app-id
     #[structopt(
         short = "p",
         long = "app-id",
         value_name = "VAULT_APP_ID",
+        requires = "app_user",
+        conflicts_with = "dev",
         env = "VAULT_APP_ID"
     )]
-    app_id: String,
+    app_id: Option<String>,
 }
 
 #[derive(StructOpt, Debug)]
@@ -151,8 +161,77 @@ struct ExecOpts {
     cmd: Vec<String>,
 }
 
+pub trait Client {
+    type Error: std::error::Error + 'static;
+
+    fn get<T>(&self, key: &str) -> Result<Option<T>, Self::Error>
+    where
+        T: serde::de::DeserializeOwned + 'static;
+}
+
 fn exec(opts: ExecOpts) -> Result<(), Box<dyn std::error::Error>> {
-    unimplemented!()
+    if opts.cmd.len() < 1 {
+        ExecOpts::clap().write_help(&mut std::io::stderr()).unwrap();
+        std::process::exit(1);
+    }
+
+    let mut command = std::process::Command::new(&opts.cmd[0]);
+    command.args(&opts.cmd[1..]);
+
+    if opts.isolate {
+        command.env_clear();
+    }
+
+    match fetch(opts.fetch) {
+        Ok(env) => {
+            command.envs(env);
+        }
+        Err(_) if opts.force => (),
+        Err(e) => return Err(e),
+    };
+    Err(Box::new(command.exec()))
+}
+
+fn fetch(opts: FetchOpts) -> Result<HashMap<String, String>, Box<dyn std::error::Error>> {
+    let mut env = HashMap::new();
+    let consul = consul::Client::new(opts.consul)?;
+    let service = get_service(opts.service)?;
+
+    fill(&mut env, &consul, "global")?;
+
+    fill(&mut env, &consul, &service)?;
+
+    Ok(env)
+}
+
+#[derive(Deserialize)]
+struct VersionInfo {
+    version: u64,
+}
+
+fn fill<T>(
+    env: &mut HashMap<String, String>,
+    client: &T,
+    service: &str,
+) -> Result<(), Box<dyn std::error::Error>>
+where
+    T: Client,
+{
+    let version = client
+        .get::<VersionInfo>(&format!("config/{}/current", service))?
+        .map(|v| v.version)
+        .unwrap_or_else(|| {
+            warn!("could not determine version, using 1");
+            1
+        });
+    if let Some(mut map) =
+        client.get::<HashMap<String, String>>(&format!("config/{}/{}", service, version))?
+    {
+        map.remove("__timestamp__");
+        map.remove("__user__");
+        env.extend(map);
+    };
+    Ok(())
 }
 
 #[derive(StructOpt, Debug)]
@@ -238,8 +317,6 @@ fn get_service(service: Option<String>) -> Result<String, Box<dyn std::error::Er
 }
 
 fn plugin(name: String, args: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
-    use std::os::unix::process::CommandExt;
-
     let name = format!(concat!(env!("CARGO_PKG_NAME"), "-{}"), name);
     let mut command = std::process::Command::new(&name);
     command.args(args);
