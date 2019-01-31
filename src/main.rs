@@ -1,4 +1,6 @@
 mod consul;
+mod prompt;
+mod vault;
 
 use std::{collections::HashMap, fmt, os::unix::process::CommandExt};
 
@@ -194,12 +196,26 @@ fn exec(opts: ExecOpts) -> Result<(), Box<dyn std::error::Error>> {
 
 fn fetch(opts: FetchOpts) -> Result<HashMap<String, String>, Box<dyn std::error::Error>> {
     let mut env = HashMap::new();
-    let consul = consul::Client::new(opts.consul)?;
     let service = get_service(opts.service)?;
 
+    let consul = consul::Client::new(opts.consul)?;
+    let mut vault = vault::Client::new(opts.vault)?;
+
+    if let Some(token) = opts.token {
+        vault.token(token);
+    } else if let (Some(app_id), Some(app_user)) = (opts.app_id, opts.app_user) {
+        vault.app_id_auth(app_id, app_user)?;
+    } else if opts.dev {
+        let user = prompt::prompt_default("Vault username: ", std::env::var("USER").ok())?;
+        let password = prompt::prompt_password("Vault password: ")?;
+        vault.ldap_auth(user, password)?;
+    }
+
     fill(&mut env, &consul, "global")?;
+    fill(&mut env, &vault, "global")?;
 
     fill(&mut env, &consul, &service)?;
+    fill(&mut env, &vault, &service)?;
 
     Ok(env)
 }
