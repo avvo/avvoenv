@@ -1,7 +1,7 @@
 use std::{any::TypeId, fmt};
 
 use serde_json::{from_value, json};
-use url::Url;
+use reqwest::Url;
 
 pub struct Client {
     address: Url,
@@ -19,8 +19,8 @@ impl fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
-impl From<url::ParseError> for Error {
-    fn from(e: url::ParseError) -> Error {
+impl From<reqwest::UrlError> for Error {
+    fn from(e: reqwest::UrlError) -> Error {
         Error
     }
 }
@@ -55,7 +55,7 @@ impl Client {
     }
 }
 
-impl crate::Client for Client {
+impl crate::env::Client for Client {
     type Error = Error;
 
     fn get<T>(&self, key: &str) -> Result<Option<T>, Error>

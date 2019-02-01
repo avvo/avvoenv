@@ -1,7 +1,7 @@
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
-use url::Url;
+use reqwest::Url;
 
 pub struct Client {
     address: Url,
@@ -22,22 +22,22 @@ struct LeaderResponse {
 }
 
 #[derive(Serialize)]
-pub struct LdapAuthRequest {
-    pub password: String,
+struct LdapAuthRequest<'a> {
+    password: &'a str,
 }
 
 #[derive(Serialize)]
-pub struct AppIdAuthRequest {
-    pub user_id: String,
+struct AppIdAuthRequest<'a> {
+    user_id: &'a str,
 }
 
 #[derive(Deserialize)]
-pub struct AuthResponse {
+struct AuthResponse {
     client_token: String,
 }
 
 #[derive(Deserialize)]
-pub struct AuthResponseWrapper {
+struct AuthResponseWrapper {
     auth: AuthResponse,
 }
 
@@ -52,8 +52,8 @@ impl fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
-impl From<url::ParseError> for Error {
-    fn from(e: url::ParseError) -> Error {
+impl From<reqwest::UrlError> for Error {
+    fn from(e: reqwest::UrlError) -> Error {
         Error
     }
 }
@@ -91,7 +91,7 @@ impl Client {
         self.token = Some(token);
     }
 
-    pub fn ldap_auth(&mut self, username: String, password: String) -> Result<(), Error> {
+    pub fn ldap_auth(&mut self, username: &str, password: &str) -> Result<(), Error> {
         // workaround Vault (0.5.2?) being janky and (ldap?) auth only working
         // against the leader
         self.resolve_leader()?;
@@ -102,7 +102,7 @@ impl Client {
         Ok(())
     }
 
-    pub fn app_id_auth(&mut self, app_id: String, user_id: String) -> Result<(), Error> {
+    pub fn app_id_auth(&mut self, app_id: &str, user_id: &str) -> Result<(), Error> {
         let request = AppIdAuthRequest { user_id };
         let response: AuthResponseWrapper =
             self.post(&format!("auth/app-id/login/{}", app_id), &request)?;
@@ -162,7 +162,7 @@ impl Client {
     }
 }
 
-impl crate::Client for Client {
+impl crate::env::Client for Client {
     type Error = Error;
 
     fn get<T>(&self, key: &str) -> Result<Option<T>, Error>

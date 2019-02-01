@@ -1,11 +1,14 @@
 mod consul;
+mod env;
 mod prompt;
+mod rancher_metadata;
+mod service;
 mod vault;
 
-use std::{collections::HashMap, fmt, os::unix::process::CommandExt};
+use std::os::unix::process::CommandExt;
 
-use log::{debug, error, warn};
-use serde::Deserialize;
+use glob::Pattern;
+use log::{debug, error};
 use structopt::{
     clap::AppSettings::{
         ArgRequiredElseHelp, ArgsNegateSubcommands, DisableHelpSubcommand, TrailingVarArg,
@@ -13,7 +16,7 @@ use structopt::{
     },
     StructOpt,
 };
-use url::Url;
+use reqwest::Url;
 
 fn main() {
     let opts = Opts::from_args();
@@ -105,24 +108,26 @@ struct FetchOpts {
     #[structopt(long = "dev")]
     dev: bool,
     /// add an environment variable
-    #[structopt(short = "a", long = "add", value_name = "KEY=VALUE")]
-    add: Vec<String>,
+    #[structopt(
+        short = "a",
+        long = "add",
+        value_name = "KEY=VALUE",
+        parse(from_str = "parse_add")
+    )]
+    add: Vec<(String, String)>,
     /// filter fetched variables
     #[structopt(short = "i", long = "include", value_name = "PATTERN")]
-    include: Vec<String>,
+    include: Vec<Pattern>,
     /// filter fetched variables
     #[structopt(short = "e", long = "exclude", value_name = "PATTERN")]
-    exclude: Vec<String>,
+    exclude: Vec<Pattern>,
     /// set the vault token
     #[structopt(
         short = "t",
         long = "vault-token",
         value_name = "TOKEN",
         env = "VAULT_TOKEN",
-        raw(
-            required_unless_one = r#"&["dev", "app_user", "app_id"]"#,
-            conflicts_with_all = r#"&["dev", "app_user", "app_id"]"#
-        )
+        raw(required_unless_one = r#"&["dev", "app_user", "app_id"]"#)
     )]
     token: Option<String>,
     /// authenticate with vault app-user
@@ -147,6 +152,14 @@ struct FetchOpts {
     app_id: Option<String>,
 }
 
+fn parse_add(s: &str) -> (String, String) {
+    let mut parts = s.splitn(2, "=");
+    (
+        parts.next().unwrap().to_string(),
+        parts.next().unwrap_or("").to_string(),
+    )
+}
+
 #[derive(StructOpt, Debug)]
 #[structopt(raw(setting = "TrailingVarArg"))]
 struct ExecOpts {
@@ -163,14 +176,6 @@ struct ExecOpts {
     cmd: Vec<String>,
 }
 
-pub trait Client {
-    type Error: std::error::Error + 'static;
-
-    fn get<T>(&self, key: &str) -> Result<Option<T>, Self::Error>
-    where
-        T: serde::de::DeserializeOwned + 'static;
-}
-
 fn exec(opts: ExecOpts) -> Result<(), Box<dyn std::error::Error>> {
     if opts.cmd.len() < 1 {
         ExecOpts::clap().write_help(&mut std::io::stderr()).unwrap();
@@ -184,7 +189,7 @@ fn exec(opts: ExecOpts) -> Result<(), Box<dyn std::error::Error>> {
         command.env_clear();
     }
 
-    match fetch(opts.fetch) {
+    match env::fetch(opts.fetch) {
         Ok(env) => {
             command.envs(env);
         }
@@ -192,62 +197,6 @@ fn exec(opts: ExecOpts) -> Result<(), Box<dyn std::error::Error>> {
         Err(e) => return Err(e),
     };
     Err(Box::new(command.exec()))
-}
-
-fn fetch(opts: FetchOpts) -> Result<HashMap<String, String>, Box<dyn std::error::Error>> {
-    let mut env = HashMap::new();
-    let service = get_service(opts.service)?;
-
-    let consul = consul::Client::new(opts.consul)?;
-    let mut vault = vault::Client::new(opts.vault)?;
-
-    if let Some(token) = opts.token {
-        vault.token(token);
-    } else if let (Some(app_id), Some(app_user)) = (opts.app_id, opts.app_user) {
-        vault.app_id_auth(app_id, app_user)?;
-    } else if opts.dev {
-        let user = prompt::prompt_default("Vault username: ", std::env::var("USER").ok())?;
-        let password = prompt::prompt_password("Vault password: ")?;
-        vault.ldap_auth(user, password)?;
-    }
-
-    fill(&mut env, &consul, "global")?;
-    fill(&mut env, &vault, "global")?;
-
-    fill(&mut env, &consul, &service)?;
-    fill(&mut env, &vault, &service)?;
-
-    Ok(env)
-}
-
-#[derive(Deserialize)]
-struct VersionInfo {
-    version: u64,
-}
-
-fn fill<T>(
-    env: &mut HashMap<String, String>,
-    client: &T,
-    service: &str,
-) -> Result<(), Box<dyn std::error::Error>>
-where
-    T: Client,
-{
-    let version = client
-        .get::<VersionInfo>(&format!("config/{}/current", service))?
-        .map(|v| v.version)
-        .unwrap_or_else(|| {
-            warn!("could not determine version, using 1");
-            1
-        });
-    if let Some(mut map) =
-        client.get::<HashMap<String, String>>(&format!("config/{}/{}", service, version))?
-    {
-        map.remove("__timestamp__");
-        map.remove("__user__");
-        env.extend(map);
-    };
-    Ok(())
 }
 
 #[derive(StructOpt, Debug)]
@@ -274,62 +223,10 @@ struct ServiceOpts {
     service: Option<String>,
 }
 
-#[derive(Debug)]
-struct NotUnicode(std::ffi::OsString);
-
-impl std::error::Error for NotUnicode {}
-
-impl fmt::Display for NotUnicode {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "not valid unicode: {:?}", self.0)
-    }
-}
-
-#[derive(Debug)]
-struct NoneError;
-
-impl std::error::Error for NoneError {}
-
-impl fmt::Display for NoneError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "value missing")
-    }
-}
-
 fn service(opts: ServiceOpts) -> Result<(), Box<dyn std::error::Error>> {
-    let service = get_service(opts.service)?;
+    let service = service::name(opts.service)?;
     println!("{}", service);
     Ok(())
-}
-
-fn get_service(service: Option<String>) -> Result<String, Box<dyn std::error::Error>> {
-    let mut service = service;
-    if service.is_none() {
-        match std::fs::File::open("requirements.yml") {
-            Ok(f) => {
-                let buf = std::io::BufReader::new(f);
-                let reqs: serde_yaml::Value = serde_yaml::from_reader(buf)?;
-                if let Some(value) = reqs.get("service_name") {
-                    service = Some(serde_yaml::to_string(value)?);
-                }
-            }
-            Err(ref e) if e.kind() == std::io::ErrorKind::NotFound => (),
-            Err(e) => Err(e)?,
-        };
-    };
-    if service.is_none() {
-        let dir = std::env::current_dir()?;
-        if let Some(os_str) = dir.file_name() {
-            if let Some(opt_s) = os_str.to_str() {
-                service = Some(opt_s.to_owned());
-            } else {
-                Err(NotUnicode(os_str.to_owned()))?
-            }
-        }
-    };
-    service
-        .map(|s| s.replace('_', "-").to_lowercase())
-        .ok_or_else(|| NoneError.into())
 }
 
 fn plugin(name: String, args: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
