@@ -1,7 +1,9 @@
 use std::{fmt, iter::IntoIterator, thread::sleep, time::Duration, vec};
 
-use serde::Deserialize;
 use reqwest::Url;
+use serde::Deserialize;
+
+use crate::client_error::ClientError;
 
 pub struct Client {
     address: Url,
@@ -43,31 +45,23 @@ impl IntoIterator for Info {
 }
 
 #[derive(Debug)]
-pub struct Error;
+pub struct Error(ClientError);
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "error")
+        write!(f, "Rancher: {}", self.0)
     }
 }
 
-impl std::error::Error for Error {}
-
-impl From<reqwest::UrlError> for Error {
-    fn from(e: reqwest::UrlError) -> Error {
-        Error
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        self.0.source()
     }
 }
 
-impl From<reqwest::Error> for Error {
-    fn from(e: reqwest::Error) -> Error {
-        Error
-    }
-}
-
-impl From<serde_json::error::Error> for Error {
-    fn from(e: serde_json::error::Error) -> Error {
-        Error
+impl<T: Into<ClientError>> From<T> for Error {
+    fn from(e: T) -> Error {
+        Error(e.into())
     }
 }
 
@@ -93,7 +87,7 @@ impl Client {
             return Ok(None);
         }
         if !response.status().is_success() {
-            return Err(Error);
+            return Err(ClientError::ServerError(response).into());
         }
         Ok(response.json()?)
     }

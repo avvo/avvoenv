@@ -1,3 +1,4 @@
+mod client_error;
 mod consul;
 mod env;
 mod prompt;
@@ -9,6 +10,7 @@ use std::os::unix::process::CommandExt;
 
 use glob::Pattern;
 use log::{debug, error};
+use reqwest::Url;
 use structopt::{
     clap::AppSettings::{
         ArgRequiredElseHelp, ArgsNegateSubcommands, DisableHelpSubcommand, TrailingVarArg,
@@ -16,7 +18,6 @@ use structopt::{
     },
     StructOpt,
 };
-use reqwest::Url;
 
 fn main() {
     let opts = Opts::from_args();

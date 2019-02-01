@@ -1,7 +1,9 @@
 use std::fmt;
 
-use serde::{Deserialize, Serialize};
 use reqwest::Url;
+use serde::{Deserialize, Serialize};
+
+use crate::client_error::ClientError;
 
 pub struct Client {
     address: Url,
@@ -42,38 +44,30 @@ struct AuthResponseWrapper {
 }
 
 #[derive(Debug)]
-pub struct Error;
+pub struct Error(ClientError);
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "error")
+        write!(f, "Vault: {}", self.0)
     }
 }
 
-impl std::error::Error for Error {}
-
-impl From<reqwest::UrlError> for Error {
-    fn from(e: reqwest::UrlError) -> Error {
-        Error
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        self.0.source()
     }
 }
 
-impl From<reqwest::Error> for Error {
-    fn from(e: reqwest::Error) -> Error {
-        Error
-    }
-}
-
-impl From<serde_json::error::Error> for Error {
-    fn from(e: serde_json::error::Error) -> Error {
-        Error
+impl<T: Into<ClientError>> From<T> for Error {
+    fn from(e: T) -> Error {
+        Error(e.into())
     }
 }
 
 impl Client {
     pub fn new(mut address: Url) -> Result<Client, Error> {
         if address.cannot_be_a_base() {
-            return Err(Error);
+            return Err(ClientError::BaseUrlError(address).into());
         };
         address
             .path_segments_mut()
@@ -111,7 +105,10 @@ impl Client {
     }
 
     fn resolve_leader(&mut self) -> Result<(), Error> {
-        let info: LeaderResponse = self.get_internal("/sys/leader")?.ok_or_else(|| Error)?;
+        let info = match self.get_internal::<LeaderResponse>("/sys/leader")? {
+            Some(v) => v,
+            None => return Ok(()),
+        };
         if info.ha_enabled && !info.is_self {
             let mut leader_address = Url::parse(&info.leader_address)
                 .expect("invalid leader address returned from vault");
@@ -137,7 +134,7 @@ impl Client {
         };
         let mut response = request.send()?;
         if !response.status().is_success() {
-            return Err(Error);
+            return Err(ClientError::ServerError(response).into());
         }
         Ok(response.json()?)
     }
@@ -156,7 +153,7 @@ impl Client {
             return Ok(None);
         }
         if !response.status().is_success() {
-            return Err(Error);
+            return Err(ClientError::ServerError(response).into());
         }
         Ok(Some(response.json()?))
     }
