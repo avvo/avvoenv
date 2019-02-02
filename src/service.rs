@@ -1,28 +1,47 @@
-use std::fmt;
+use std::{io, fmt, ffi};
 
 #[derive(Debug)]
-struct NotUnicode(std::ffi::OsString);
+pub enum Error {
+    IoError(io::Error),
+    NoneError,
+    NotUnicode(ffi::OsString),
+    YamlError(serde_yaml::Error),
+}
 
-impl std::error::Error for NotUnicode {}
-
-impl fmt::Display for NotUnicode {
+impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "not valid unicode: {:?}", self.0)
+        match self {
+            Error::IoError(e) => e.fmt(f),
+            Error::NoneError => write!(f, "value missing"),
+            Error::NotUnicode(s) => write!(f, "not valid unicode: {:?}", s),
+            Error::YamlError(e) => e.fmt(f),
+        }
     }
 }
 
-#[derive(Debug)]
-struct NoneError;
-
-impl std::error::Error for NoneError {}
-
-impl fmt::Display for NoneError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "value missing")
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Error::IoError(e) => Some(e),
+            Error::NoneError | Error::NotUnicode(_) => None,
+            Error::YamlError(e) => Some(e),
+        }
     }
 }
 
-pub(crate) fn name(service: Option<String>) -> Result<String, Box<dyn std::error::Error>> {
+impl From<io::Error> for Error {
+    fn from(e: io::Error) -> Error {
+        Error::IoError(e)
+    }
+}
+
+impl From<serde_yaml::Error> for Error {
+    fn from(e: serde_yaml::Error) -> Error {
+        Error::YamlError(e)
+    }
+}
+
+pub(crate) fn name(service: Option<String>) -> Result<String, Error> {
     let mut service = service;
     if service.is_none() {
         match std::fs::File::open("requirements.yml") {
@@ -34,7 +53,7 @@ pub(crate) fn name(service: Option<String>) -> Result<String, Box<dyn std::error
                 }
             }
             Err(ref e) if e.kind() == std::io::ErrorKind::NotFound => (),
-            Err(e) => Err(e)?,
+            Err(e) => return Err(e.into()),
         };
     };
     if service.is_none() {
@@ -43,11 +62,11 @@ pub(crate) fn name(service: Option<String>) -> Result<String, Box<dyn std::error
             if let Some(opt_s) = os_str.to_str() {
                 service = Some(opt_s.to_owned());
             } else {
-                Err(NotUnicode(os_str.to_owned()))?
+                Err(Error::NotUnicode(os_str.to_owned()))?
             }
         }
     };
     service
         .map(|s| s.replace('_', "-").to_lowercase())
-        .ok_or_else(|| NoneError.into())
+        .ok_or_else(|| Error::NoneError)
 }

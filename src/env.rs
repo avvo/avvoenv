@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io::Read, path::PathBuf};
+use std::{collections::HashMap, io::{self, Read}, fmt, path::PathBuf};
 
 use dirs::home_dir;
 use log::warn;
@@ -18,6 +18,69 @@ pub trait Client {
         T: serde::de::DeserializeOwned + 'static;
 }
 
+#[derive(Debug)]
+pub enum Error {
+    ConsulError(consul::Error),
+    IoError(io::Error),
+    RancherError(rancher_metadata::Error),
+    ServiceError(service::Error),
+    VaultError(vault::Error),
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Error::ConsulError(e) => e.fmt(f),
+            Error::IoError(e) => e.fmt(f),
+            Error::RancherError(e) => e.fmt(f),
+            Error::ServiceError(e) => e.fmt(f),
+            Error::VaultError(e) => e.fmt(f),
+        }
+    }
+}
+
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Error::ConsulError(e) => Some(e),
+            Error::IoError(e) => Some(e),
+            Error::RancherError(e) => Some(e),
+            Error::ServiceError(e) => Some(e),
+            Error::VaultError(e) => Some(e),
+        }
+    }
+}
+
+impl From<consul::Error> for Error {
+    fn from(e: consul::Error) -> Error {
+        Error::ConsulError(e)
+    }
+}
+
+impl From<io::Error> for Error {
+    fn from(e: io::Error) -> Error {
+        Error::IoError(e)
+    }
+}
+
+impl From<rancher_metadata::Error> for Error {
+    fn from(e: rancher_metadata::Error) -> Error {
+        Error::RancherError(e)
+    }
+}
+
+impl From<service::Error> for Error {
+    fn from(e: service::Error) -> Error {
+        Error::ServiceError(e)
+    }
+}
+
+impl From<vault::Error> for Error {
+    fn from(e: vault::Error) -> Error {
+        Error::VaultError(e)
+    }
+}
+
 #[derive(Deserialize)]
 struct VersionInfo {
     version: u64,
@@ -25,7 +88,7 @@ struct VersionInfo {
 
 pub(crate) fn fetch(
     opts: FetchOpts,
-) -> Result<HashMap<String, String>, Box<dyn std::error::Error>> {
+) -> Result<HashMap<String, String>, Error> {
     let mut env = HashMap::new();
     let service = service::name(opts.service)?;
 
@@ -51,7 +114,7 @@ pub(crate) fn fetch(
         vault.token(string.trim_right().to_string());
     }
 
-    if let Some(info) = rancher.info().map_err(|e| e.to_string())? {
+    if let Some(info) = rancher.info()? {
         env.extend(info);
     }
 
@@ -80,9 +143,10 @@ fn fill<T>(
     env: &mut HashMap<String, String>,
     client: &T,
     service: &str,
-) -> Result<(), Box<dyn std::error::Error>>
+) -> Result<(), Error>
 where
     T: Client,
+    Error: From<<T as Client>::Error>,
 {
     let version = client
         .get::<VersionInfo>(&format!("config/{}/current", service))?
@@ -101,14 +165,11 @@ where
     Ok(())
 }
 
-fn fill_dependencies<T>(
+fn fill_dependencies(
     env: &mut HashMap<String, String>,
-    client: &T,
+    client: &consul::Client,
     app: &str,
-) -> Result<(), Box<dyn std::error::Error>>
-where
-    T: Client,
-{
+) -> Result<(), Error> {
     let deps = match client.get::<Vec<String>>(&format!("config/{}/dependencies", app))? {
         Some(v) => v,
         None => return Ok(()),
@@ -120,20 +181,17 @@ where
                 env.insert(key, val);
             }
             Ok(None) => (),
-            Err(e) => return Err(Box::new(e)),
+            Err(e) => return Err(e.into()),
         };
     }
     Ok(())
 }
 
-fn fill_generated<T>(
+fn fill_generated(
     env: &mut HashMap<String, String>,
-    client: &T,
+    client: &consul::Client,
     app: &str,
-) -> Result<(), Box<dyn std::error::Error>>
-where
-    T: Client,
-{
+) -> Result<(), Error> {
     if let Some(generated) =
         client.get::<HashMap<String, String>>(&format!("config/{}/generated", app))?
     {

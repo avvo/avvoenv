@@ -90,7 +90,7 @@ enum Subcommand {
 }
 
 #[derive(StructOpt, Debug)]
-struct FetchOpts {
+pub(crate) struct FetchOpts {
     /// set the service name
     #[structopt(short = "s", long = "service", value_name = "NAME", env = "SERVICE")]
     service: Option<String>,
@@ -195,7 +195,7 @@ fn exec(opts: ExecOpts) -> Result<(), Box<dyn std::error::Error>> {
             command.envs(env);
         }
         Err(_) if opts.force => (),
-        Err(e) => return Err(e),
+        Err(e) => return Err(e.into()),
     };
     Err(Box::new(command.exec()))
 }
