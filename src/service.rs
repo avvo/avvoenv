@@ -1,4 +1,4 @@
-use std::{io, fmt, ffi};
+use std::{ffi, fmt, io};
 
 #[derive(Debug)]
 pub enum Error {

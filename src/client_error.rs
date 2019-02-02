@@ -3,7 +3,7 @@ use std::{error::Error, fmt};
 #[derive(Debug)]
 pub enum ClientError {
     BaseUrlError(reqwest::Url),
-    JsonError(serde_json::error::Error),
+    JsonError(serde_json::Error),
     RequestError(reqwest::Error),
     ServerError(reqwest::Response),
     UrlError(reqwest::UrlError),
@@ -44,8 +44,8 @@ impl From<reqwest::Error> for ClientError {
     }
 }
 
-impl From<serde_json::error::Error> for ClientError {
-    fn from(e: serde_json::error::Error) -> ClientError {
+impl From<serde_json::Error> for ClientError {
+    fn from(e: serde_json::Error) -> ClientError {
         ClientError::JsonError(e)
     }
 }

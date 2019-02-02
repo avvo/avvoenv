@@ -1,12 +1,13 @@
 mod client_error;
 mod consul;
 mod env;
+mod format;
 mod prompt;
 mod rancher_metadata;
 mod service;
 mod vault;
 
-use std::os::unix::process::CommandExt;
+use std::{io, fs::File, path::{Path, PathBuf}, os::unix::process::CommandExt};
 
 use glob::Pattern;
 use log::{debug, error};
@@ -18,6 +19,8 @@ use structopt::{
     },
     StructOpt,
 };
+
+use format::Format;
 
 fn main() {
     let opts = Opts::from_args();
@@ -205,16 +208,29 @@ fn exec(opts: ExecOpts) -> Result<(), Box<dyn std::error::Error>> {
 struct WriteOpts {
     #[structopt(flatten)]
     fetch: FetchOpts,
-    /// ignore errors and always execute <command>
-    #[structopt(short = "f", long = "format", value_name = "FORMAT")]
-    format: Option<String>,
+    /// set the output format
+    #[structopt(
+        short = "f",
+        long = "format",
+        value_name = "FORMAT",
+        raw(possible_values = r#"&["env", "defaults", "hcon", "json", "properties", "yaml"]"#)
+    )]
+    format: Option<Format>,
     /// File to write
     #[structopt(name = "FILE")]
-    file: String,
+    path: PathBuf,
 }
 
 fn write(opts: WriteOpts) -> Result<(), Box<dyn std::error::Error>> {
-    unimplemented!()
+    let path = opts.path;
+    let format = opts.format.unwrap_or_else(|| Format::from_path(&path));
+    let env = env::fetch(opts.fetch)?;
+    if path == Path::new("-") {
+        format.to_writer(io::stdout(), env)?;
+    } else {
+        format.to_writer(File::create(path)?, env)?;
+    };
+    Ok(())
 }
 
 #[derive(StructOpt, Debug)]

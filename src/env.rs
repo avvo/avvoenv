@@ -1,4 +1,9 @@
-use std::{collections::HashMap, io::{self, Read}, fmt, path::PathBuf};
+use std::{
+    collections::HashMap,
+    fmt,
+    io::{self, Read},
+    path::PathBuf,
+};
 
 use dirs::home_dir;
 use log::warn;
@@ -86,9 +91,7 @@ struct VersionInfo {
     version: u64,
 }
 
-pub(crate) fn fetch(
-    opts: FetchOpts,
-) -> Result<HashMap<String, String>, Error> {
+pub(crate) fn fetch(opts: FetchOpts) -> Result<HashMap<String, String>, Error> {
     let mut env = HashMap::new();
     let service = service::name(opts.service)?;
 
@@ -139,11 +142,7 @@ pub(crate) fn fetch(
     Ok(env)
 }
 
-fn fill<T>(
-    env: &mut HashMap<String, String>,
-    client: &T,
-    service: &str,
-) -> Result<(), Error>
+fn fill<T>(env: &mut HashMap<String, String>, client: &T, service: &str) -> Result<(), Error>
 where
     T: Client,
     Error: From<<T as Client>::Error>,
