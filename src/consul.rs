@@ -58,7 +58,7 @@ impl crate::env::Client for Client {
     where
         T: serde::de::DeserializeOwned + 'static,
     {
-        let mut url = self.address.join(key.trim_left_matches(|c| c == '/'))?;
+        let mut url = self.address.join(key.trim_start_matches(|c| c == '/'))?;
         url.set_query(Some("raw=true"));
         let request = self.http.get(url.clone());
         trace!("{:?}", request);

@@ -167,7 +167,7 @@ impl Client {
         S: serde::ser::Serialize,
         D: serde::de::DeserializeOwned,
     {
-        let url = self.address.join(key.trim_left_matches(|c| c == '/'))?;
+        let url = self.address.join(key.trim_start_matches(|c| c == '/'))?;
         let mut request = self.http.post(url.clone()).json(data);
         trace!("{:?}", request);
         if let Some(Secret(ref token)) = self.token {
@@ -187,7 +187,7 @@ impl Client {
     where
         T: serde::de::DeserializeOwned + 'static,
     {
-        let url = self.address.join(key.trim_left_matches(|c| c == '/'))?;
+        let url = self.address.join(key.trim_start_matches(|c| c == '/'))?;
         let mut request = self.http.get(url.clone());
         trace!("{:?}", request);
         if let Some(Secret(ref token)) = self.token {

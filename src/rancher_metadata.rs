@@ -102,7 +102,7 @@ impl Client {
     where
         T: serde::de::DeserializeOwned + 'static,
     {
-        let url = self.address.join(path.trim_left_matches(|c| c == '/'))?;
+        let url = self.address.join(path.trim_start_matches(|c| c == '/'))?;
         let request = self
             .http
             .get(url.clone())
