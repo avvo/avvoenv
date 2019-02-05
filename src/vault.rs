@@ -1,14 +1,45 @@
-use std::fmt;
+use std::{fmt, str::FromStr};
 
+use log::{debug, trace, warn};
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
 
 use crate::client_error::ClientError;
 
+#[derive(Debug)]
 pub struct Client {
     address: Url,
-    token: Option<String>,
+    token: Option<Secret>,
     http: reqwest::Client,
+}
+
+pub struct Secret(String);
+
+#[derive(Debug)]
+pub enum ParseError {}
+
+impl std::error::Error for ParseError {}
+
+impl fmt::Display for ParseError {
+    fn fmt(&self, _: &mut fmt::Formatter) -> fmt::Result {
+        unreachable!()
+    }
+}
+
+impl FromStr for Secret {
+    type Err = ParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Secret(s.to_owned()))
+    }
+}
+
+impl fmt::Debug for Secret {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_tuple("Secret")
+            .field(&format!("{}", "*".repeat(self.0.len())))
+            .finish()
+    }
 }
 
 #[derive(Deserialize)]
@@ -16,7 +47,7 @@ struct Response<T> {
     data: T,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 struct LeaderResponse {
     ha_enabled: bool,
     is_self: bool,
@@ -48,7 +79,7 @@ pub struct Error(ClientError);
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Vault: {}", self.0)
+        self.0.fmt(f)
     }
 }
 
@@ -81,7 +112,7 @@ impl Client {
         })
     }
 
-    pub fn token(&mut self, token: String) {
+    pub fn token(&mut self, token: Secret) {
         self.token = Some(token);
     }
 
@@ -92,23 +123,28 @@ impl Client {
         let request = LdapAuthRequest { password };
         let response: AuthResponseWrapper =
             self.post(&format!("auth/ldap/login/{}", username), &request)?;
-        self.token = Some(response.auth.client_token);
+        self.token = Some(Secret(response.auth.client_token));
         Ok(())
     }
 
-    pub fn app_id_auth(&mut self, app_id: &str, user_id: &str) -> Result<(), Error> {
+    pub fn app_id_auth(&mut self, app_id: &str, Secret(user_id): &Secret) -> Result<(), Error> {
         let request = AppIdAuthRequest { user_id };
         let response: AuthResponseWrapper =
             self.post(&format!("auth/app-id/login/{}", app_id), &request)?;
-        self.token = Some(response.auth.client_token);
+        self.token = Some(Secret(response.auth.client_token));
         Ok(())
     }
 
     fn resolve_leader(&mut self) -> Result<(), Error> {
+        trace!("Resolving Vault leader");
         let info = match self.get_internal::<LeaderResponse>("/sys/leader")? {
             Some(v) => v,
-            None => return Ok(()),
+            None => {
+                warn!("Vault leader Not Found");
+                return Ok(());
+            }
         };
+        trace!("{:?}", info);
         if info.ha_enabled && !info.is_self {
             let mut leader_address = Url::parse(&info.leader_address)
                 .expect("invalid leader address returned from vault");
@@ -117,6 +153,10 @@ impl Client {
                 .expect("invalid base URL")
                 .push("v1")
                 .push("");
+            debug!(
+                "Updating Vault addr from {:?} to {:?}",
+                self.address, leader_address
+            );
             self.address = leader_address;
         }
         Ok(())
@@ -128,15 +168,19 @@ impl Client {
         D: serde::de::DeserializeOwned,
     {
         let url = self.address.join(key.trim_left_matches(|c| c == '/'))?;
-        let mut request = self.http.post(url).json(data);
-        if let Some(ref token) = self.token {
+        let mut request = self.http.post(url.clone()).json(data);
+        trace!("{:?}", request);
+        if let Some(Secret(ref token)) = self.token {
             request = request.header("X-Vault-Token", token.as_str());
         };
-        let mut response = request.send()?;
+        let mut response = request
+            .send()
+            .map_err(|e| ClientError::with_url(url.clone(), e))?;
+        trace!("{:?}", response);
         if !response.status().is_success() {
             return Err(ClientError::ServerError(response).into());
         }
-        Ok(response.json()?)
+        Ok(response.json().map_err(|e| ClientError::with_url(url, e))?)
     }
 
     fn get_internal<T>(&self, key: &str) -> Result<Option<T>, Error>
@@ -144,18 +188,24 @@ impl Client {
         T: serde::de::DeserializeOwned + 'static,
     {
         let url = self.address.join(key.trim_left_matches(|c| c == '/'))?;
-        let mut request = self.http.get(url);
-        if let Some(ref token) = self.token {
+        let mut request = self.http.get(url.clone());
+        trace!("{:?}", request);
+        if let Some(Secret(ref token)) = self.token {
             request = request.header("X-Vault-Token", token.as_str());
         };
-        let mut response = request.send()?;
+        let mut response = request
+            .send()
+            .map_err(|e| ClientError::with_url(url.clone(), e))?;
+        trace!("{:?}", response);
         if response.status() == reqwest::StatusCode::NOT_FOUND {
             return Ok(None);
         }
         if !response.status().is_success() {
             return Err(ClientError::ServerError(response).into());
         }
-        Ok(Some(response.json()?))
+        Ok(Some(
+            response.json().map_err(|e| ClientError::with_url(url, e))?,
+        ))
     }
 }
 

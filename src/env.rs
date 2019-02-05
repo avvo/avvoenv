@@ -6,7 +6,7 @@ use std::{
 };
 
 use dirs::home_dir;
-use log::warn;
+use log::{debug, info, trace, warn};
 use serde::Deserialize;
 
 use crate::{
@@ -30,6 +30,7 @@ pub enum Error {
     RancherError(rancher_metadata::Error),
     ServiceError(service::Error),
     VaultError(vault::Error),
+    VaultTokenError(vault::ParseError),
 }
 
 impl fmt::Display for Error {
@@ -40,6 +41,7 @@ impl fmt::Display for Error {
             Error::RancherError(e) => e.fmt(f),
             Error::ServiceError(e) => e.fmt(f),
             Error::VaultError(e) => e.fmt(f),
+            Error::VaultTokenError(e) => e.fmt(f),
         }
     }
 }
@@ -52,6 +54,7 @@ impl std::error::Error for Error {
             Error::RancherError(e) => Some(e),
             Error::ServiceError(e) => Some(e),
             Error::VaultError(e) => Some(e),
+            Error::VaultTokenError(e) => Some(e),
         }
     }
 }
@@ -86,6 +89,12 @@ impl From<vault::Error> for Error {
     }
 }
 
+impl From<vault::ParseError> for Error {
+    fn from(e: vault::ParseError) -> Error {
+        Error::VaultTokenError(e)
+    }
+}
+
 #[derive(Deserialize)]
 struct VersionInfo {
     version: u64,
@@ -94,49 +103,72 @@ struct VersionInfo {
 pub(crate) fn fetch(opts: FetchOpts) -> Result<HashMap<String, String>, Error> {
     let mut env = HashMap::new();
     let service = service::name(opts.service)?;
+    info!("Fetching environment for {}", service);
 
-    let rancher = rancher_metadata::Client::new();
     let consul = consul::Client::new(opts.consul)?;
+    trace!("Configured Consul: {:?}", consul);
     let mut vault = vault::Client::new(opts.vault)?;
+    trace!("Configured Vault: {:?}", vault);
 
     if opts.dev {
+        info!("Authenticating with Vault via LDAP");
         let user = prompt_default("Vault username: ", std::env::var("USER").ok())?;
         let password = prompt_password("Vault password: ")?;
         vault.ldap_auth(&user, &password)?;
     } else if let (Some(app_id), Some(app_user)) = (&opts.app_id, &opts.app_user) {
+        debug!("Authenticating with Vault via App ID");
         vault.app_id_auth(app_id, app_user)?;
     } else if let Some(token) = opts.token {
+        debug!("Using supplied Vault token");
         vault.token(token);
     } else {
+        debug!("Using Vault token from ~/.vault-token");
         let mut path = home_dir().unwrap_or(PathBuf::from("/"));
         path.push(".vault-token");
         let f = std::fs::File::open(path)?;
         let mut reader = std::io::BufReader::new(f);
         let mut string = String::new();
         reader.read_to_string(&mut string)?;
-        vault.token(string.trim_right().to_string());
+        vault.token(string.trim().parse()?);
     }
 
-    if let Some(info) = rancher.info()? {
-        env.extend(info);
+    if !opts.skip_rancher_metadata && rancher_metadata::is_available() {
+        debug!("Fetching config from Rancher");
+        let rancher = rancher_metadata::Client::new();
+        if let Some(info) = rancher.info()? {
+            let map: HashMap<_, _> = info.into_iter().collect();
+            trace!("Merging to environment: {:?}", map);
+            env.extend(map);
+        }
     }
 
+    debug!("Fetching global config");
     fill(&mut env, &consul, "global")?;
+    debug!("Fetching global secrets");
     fill(&mut env, &vault, "global")?;
 
+    debug!("Fetching {} dependencies", service);
     fill_dependencies(&mut env, &consul, &service)?;
+    debug!("Fetching {} generated", service);
     fill_generated(&mut env, &consul, &service)?;
 
+    debug!("Fetching {} config", service);
     fill(&mut env, &consul, &service)?;
+    debug!("Fetching {} secrets", service);
     fill(&mut env, &vault, &service)?;
 
     let include = opts.include;
     let exclude = opts.exclude;
     env.retain(|key, _| {
-        (include.is_empty() || include.iter().any(|p| p.matches(key)))
-            && !exclude.iter().any(|p| p.matches(key))
+        let keep = (include.is_empty() || include.iter().any(|p| p.matches(key)))
+            && !exclude.iter().any(|p| p.matches(key));
+        if !keep {
+            trace!("Filtering out {:?}", key);
+        }
+        keep
     });
 
+    trace!("Merging to environment from options: {:?}", opts.add);
     env.extend(opts.add);
 
     Ok(env)
@@ -154,11 +186,13 @@ where
             warn!("could not determine version, using 1");
             1
         });
+    debug!("Got version {}", version);
     if let Some(mut map) =
         client.get::<HashMap<String, String>>(&format!("config/{}/{}", service, version))?
     {
         map.remove("__timestamp__");
         map.remove("__user__");
+        trace!("Merging to environment: {:?}", map);
         env.extend(map);
     };
     Ok(())
@@ -173,13 +207,15 @@ fn fill_dependencies(
         Some(v) => v,
         None => return Ok(()),
     };
+    trace!("Got dependencies: {:?}", deps);
     for dep in deps {
-        let key = format!("{}_", dep.replace("-", "_").to_uppercase());
-        match client.get::<String>(&format!("infrastructure/service-uris/{}_BASE_URL", key)) {
+        let key = format!("{}_BASE_URL", dep.replace("-", "_").to_uppercase());
+        match client.get::<String>(&format!("infrastructure/service-uris/{}", key)) {
             Ok(Some(val)) => {
+                trace!("Merging to environment: {:?}: {:?}", key, val);
                 env.insert(key, val);
             }
-            Ok(None) => (),
+            Ok(None) => warn!("Missing URL for {}", dep),
             Err(e) => return Err(e.into()),
         };
     }
@@ -194,6 +230,7 @@ fn fill_generated(
     if let Some(generated) =
         client.get::<HashMap<String, String>>(&format!("config/{}/generated", app))?
     {
+        trace!("Merging to environment: {:?}", generated);
         env.extend(generated);
     }
     Ok(())

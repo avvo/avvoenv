@@ -1,4 +1,11 @@
-use std::{collections::HashMap, error::Error, io::{self, Write}, fmt, path::Path, str::FromStr};
+use std::{
+    collections::HashMap,
+    error::Error,
+    fmt,
+    io::{self, Write},
+    path::Path,
+    str::FromStr,
+};
 
 #[derive(Debug)]
 pub enum Format {
@@ -22,7 +29,11 @@ impl Format {
         }
     }
 
-    pub fn to_writer<W: Write>(&self, writer: W, env: HashMap<String, String>) -> Result<(), FormatError> {
+    pub fn to_writer<W: Write>(
+        &self,
+        writer: W,
+        env: HashMap<String, String>,
+    ) -> Result<(), FormatError> {
         match self {
             Format::Env => write_env(writer, env),
             Format::Defaults => write_defaults(writer, env),
@@ -108,14 +119,22 @@ impl From<serde_yaml::Error> for FormatError {
 
 fn write_env<W: Write>(mut writer: W, env: HashMap<String, String>) -> Result<(), FormatError> {
     for (key, val) in env {
-        writeln!(writer, "{}={}\n", key, val)?;
+        write!(writer, "{}={}\n", key, val)?;
     }
     Ok(())
 }
 
-fn write_defaults<W: Write>(mut writer: W, env: HashMap<String, String>) -> Result<(), FormatError> {
+fn write_defaults<W: Write>(
+    mut writer: W,
+    env: HashMap<String, String>,
+) -> Result<(), FormatError> {
     for (key, val) in env {
-        writeln!(writer, "export {}={}\n", key, shell_escape::escape(val.into()))?;
+        write!(
+            writer,
+            "export {}={}\n",
+            key,
+            shell_escape::escape(val.into())
+        )?;
     }
     Ok(())
 }
@@ -126,7 +145,7 @@ fn write_yaml<W: Write>(writer: W, env: HashMap<String, String>) -> Result<(), F
 }
 
 fn write_json<W: Write>(writer: W, env: HashMap<String, String>) -> Result<(), FormatError> {
-    serde_json::to_writer(writer, &env)?;
+    serde_json::to_writer_pretty(writer, &env)?;
     Ok(())
 }
 
@@ -139,7 +158,10 @@ fn write_hocon<W: Write>(mut writer: W, env: HashMap<String, String>) -> Result<
     Ok(())
 }
 
-fn write_properties<W: Write>(mut writer: W, env: HashMap<String, String>) -> Result<(), FormatError> {
+fn write_properties<W: Write>(
+    mut writer: W,
+    env: HashMap<String, String>,
+) -> Result<(), FormatError> {
     for (key, val) in env {
         for c in key.chars() {
             match c {

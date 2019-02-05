@@ -1,9 +1,14 @@
-use std::{fmt, iter::IntoIterator, thread::sleep, time::Duration, vec};
+use std::{fmt, iter::IntoIterator, net::ToSocketAddrs, thread::sleep, time::Duration};
 
+use log::trace;
 use reqwest::Url;
 use serde::Deserialize;
 
 use crate::client_error::ClientError;
+
+pub fn is_available() -> bool {
+    "rancher-metadata:80".to_socket_addrs().is_ok()
+}
 
 pub struct Client {
     address: Url,
@@ -33,14 +38,34 @@ pub struct Info {
 
 impl IntoIterator for Info {
     type Item = (String, String);
-    type IntoIter = vec::IntoIter<(String, String)>;
+    type IntoIter = IntoIter;
 
     fn into_iter(self) -> Self::IntoIter {
-        vec![
-            (String::from("RANCHER_IP"), self.container.primary_ip),
-            (String::from("STATSD_HOST"), self.host.labels.fqdn),
-        ]
-        .into_iter()
+        IntoIter {
+            rancher_ip: Some(self.container.primary_ip),
+            statsd_host: Some(self.host.labels.fqdn),
+        }
+    }
+}
+
+pub struct IntoIter {
+    rancher_ip: Option<String>,
+    statsd_host: Option<String>,
+}
+
+impl Iterator for IntoIter {
+    type Item = (String, String);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.rancher_ip.is_some() {
+            self.rancher_ip
+                .take()
+                .map(|val| (String::from("RANCHER_IP"), val))
+        } else {
+            self.statsd_host
+                .take()
+                .map(|val| (String::from("STATSD_HOST"), val))
+        }
     }
 }
 
@@ -49,7 +74,7 @@ pub struct Error(ClientError);
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Rancher: {}", self.0)
+        self.0.fmt(f)
     }
 }
 
@@ -80,16 +105,20 @@ impl Client {
         let url = self.address.join(path.trim_left_matches(|c| c == '/'))?;
         let request = self
             .http
-            .get(url)
+            .get(url.clone())
             .header(reqwest::header::ACCEPT, "application/json");
-        let mut response = request.send()?;
+        trace!("{:?}", request);
+        let mut response = request
+            .send()
+            .map_err(|e| ClientError::with_url(url.clone(), e))?;
+        trace!("{:?}", response);
         if response.status() == reqwest::StatusCode::NOT_FOUND {
             return Ok(None);
         }
         if !response.status().is_success() {
             return Err(ClientError::ServerError(response).into());
         }
-        Ok(response.json()?)
+        Ok(response.json().map_err(|e| ClientError::with_url(url, e))?)
     }
 
     fn get_retry<T>(&self, path: &str) -> Result<Option<T>, Error>

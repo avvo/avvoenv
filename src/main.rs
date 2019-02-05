@@ -7,10 +7,15 @@ mod rancher_metadata;
 mod service;
 mod vault;
 
-use std::{io, fs::File, path::{Path, PathBuf}, os::unix::process::CommandExt};
+use std::{
+    fs::File,
+    io,
+    os::unix::process::CommandExt,
+    path::{Path, PathBuf},
+};
 
 use glob::Pattern;
-use log::{debug, error};
+use log::{debug, error, info, trace, warn};
 use reqwest::Url;
 use structopt::{
     clap::AppSettings::{
@@ -26,12 +31,13 @@ fn main() {
     let opts = Opts::from_args();
 
     stderrlog::new()
+        .module(module_path!())
         .quiet(opts.quiet)
         .verbosity(opts.verbosity)
         .init()
         .unwrap();
 
-    debug!("{:?}", opts);
+    debug!("{:#?}", opts);
 
     let result = match opts.subcommand {
         Some(Subcommand::Exec(opts)) => exec(opts),
@@ -41,6 +47,7 @@ fn main() {
     };
 
     if let Err(e) = result {
+        debug!("{:?}", e);
         error!("{}", e);
         std::process::exit(1);
     }
@@ -133,7 +140,7 @@ pub(crate) struct FetchOpts {
         env = "VAULT_TOKEN",
         raw(required_unless_one = r#"&["dev", "app_user", "app_id"]"#)
     )]
-    token: Option<String>,
+    token: Option<vault::Secret>,
     /// authenticate with vault app-user
     #[structopt(
         short = "r",
@@ -143,7 +150,7 @@ pub(crate) struct FetchOpts {
         conflicts_with = "dev",
         env = "VAULT_APP_USER"
     )]
-    app_user: Option<String>,
+    app_user: Option<vault::Secret>,
     /// authenticate with vault app-id
     #[structopt(
         short = "p",
@@ -154,6 +161,8 @@ pub(crate) struct FetchOpts {
         env = "VAULT_APP_ID"
     )]
     app_id: Option<String>,
+    #[structopt(long = "no-rancher-metadata")]
+    skip_rancher_metadata: bool,
 }
 
 fn parse_add(s: &str) -> (String, String) {
@@ -181,7 +190,10 @@ struct ExecOpts {
 }
 
 fn exec(opts: ExecOpts) -> Result<(), Box<dyn std::error::Error>> {
+    trace!("Running exec subcommand");
+
     if opts.cmd.len() < 1 {
+        info!("Required argument CMD was not provided");
         ExecOpts::clap().write_help(&mut std::io::stderr()).unwrap();
         std::process::exit(1);
     }
@@ -190,16 +202,25 @@ fn exec(opts: ExecOpts) -> Result<(), Box<dyn std::error::Error>> {
     command.args(&opts.cmd[1..]);
 
     if opts.isolate {
+        debug!("Clearing inherited system environment due to --isolate option");
         command.env_clear();
     }
 
     match env::fetch(opts.fetch) {
         Ok(env) => {
+            trace!("Got env: {:#?}", env);
             command.envs(env);
         }
-        Err(_) if opts.force => (),
+        Err(ref e) if opts.force => {
+            debug!("{:?}", e);
+            warn!("{}", e);
+            debug!("Ignoring error due to --force option");
+        }
         Err(e) => return Err(e.into()),
     };
+
+    debug!("Executing {:?}", &opts.cmd[0]);
+    trace!("Args: {:?}", &opts.cmd[1..]);
     Err(Box::new(command.exec()))
 }
 
@@ -222,12 +243,18 @@ struct WriteOpts {
 }
 
 fn write(opts: WriteOpts) -> Result<(), Box<dyn std::error::Error>> {
+    trace!("Running write subcommand");
+
     let path = opts.path;
     let format = opts.format.unwrap_or_else(|| Format::from_path(&path));
+    debug!("Using format {:?}", format);
     let env = env::fetch(opts.fetch)?;
+    trace!("Got env: {:#?}", env);
     if path == Path::new("-") {
+        trace!("Writing to stdout");
         format.to_writer(io::stdout(), env)?;
     } else {
+        trace!("Writing to {:?}", path);
         format.to_writer(File::create(path)?, env)?;
     };
     Ok(())
@@ -241,14 +268,20 @@ struct ServiceOpts {
 }
 
 fn service(opts: ServiceOpts) -> Result<(), Box<dyn std::error::Error>> {
+    trace!("Running service subcommand");
+
     let service = service::name(opts.service)?;
     println!("{}", service);
     Ok(())
 }
 
 fn plugin(name: String, args: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
+    trace!("Running plugin");
+
     let name = format!(concat!(env!("CARGO_PKG_NAME"), "-{}"), name);
     let mut command = std::process::Command::new(&name);
-    command.args(args);
+    command.args(&args);
+    debug!("Executing {:?}", name);
+    trace!("Args: {:?}", args);
     Err(Box::new(command.exec()))
 }

@@ -1,10 +1,12 @@
 use std::{any::TypeId, fmt};
 
+use log::trace;
 use reqwest::Url;
 use serde_json::{from_value, json};
 
 use crate::client_error::ClientError;
 
+#[derive(Debug)]
 pub struct Client {
     address: Url,
     http: reqwest::Client,
@@ -15,7 +17,7 @@ pub struct Error(ClientError);
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Consul: {}", self.0)
+        self.0.fmt(f)
     }
 }
 
@@ -58,7 +60,12 @@ impl crate::env::Client for Client {
     {
         let mut url = self.address.join(key.trim_left_matches(|c| c == '/'))?;
         url.set_query(Some("raw=true"));
-        let mut response = self.http.get(url).send()?;
+        let request = self.http.get(url.clone());
+        trace!("{:?}", request);
+        let mut response = request
+            .send()
+            .map_err(|e| ClientError::with_url(url.clone(), e))?;
+        trace!("{:?}", response);
         if response.status() == reqwest::StatusCode::NOT_FOUND {
             return Ok(None);
         }
@@ -66,9 +73,12 @@ impl crate::env::Client for Client {
             return Err(ClientError::ServerError(response).into());
         }
         if TypeId::of::<String>() == TypeId::of::<T>() {
-            Ok(from_value(json!(response.text()?))?)
+            let body = response
+                .text()
+                .map_err(|e| ClientError::with_url(url.clone(), e))?;
+            from_value(json!(body)).map_err(|e| ClientError::with_url(url, e).into())
         } else {
-            Ok(response.json()?)
+            Ok(response.json().map_err(|e| ClientError::with_url(url, e))?)
         }
     }
 }

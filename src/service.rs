@@ -1,5 +1,7 @@
 use std::{ffi, fmt, io};
 
+use log::{debug, trace};
+
 #[derive(Debug)]
 pub enum Error {
     IoError(io::Error),
@@ -12,8 +14,8 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Error::IoError(e) => e.fmt(f),
-            Error::NoneError => write!(f, "value missing"),
-            Error::NotUnicode(s) => write!(f, "not valid unicode: {:?}", s),
+            Error::NoneError => write!(f, "service name missing"),
+            Error::NotUnicode(s) => write!(f, "service name valid unicode: {:?}", s),
             Error::YamlError(e) => e.fmt(f),
         }
     }
@@ -44,12 +46,15 @@ impl From<serde_yaml::Error> for Error {
 pub(crate) fn name(service: Option<String>) -> Result<String, Error> {
     let mut service = service;
     if service.is_none() {
+        trace!("Trying service from requirements.yml");
         match std::fs::File::open("requirements.yml") {
             Ok(f) => {
                 let buf = std::io::BufReader::new(f);
                 let reqs: serde_yaml::Value = serde_yaml::from_reader(buf)?;
                 if let Some(value) = reqs.get("service_name") {
-                    service = Some(serde_yaml::to_string(value)?);
+                    let val = serde_yaml::to_string(value)?;
+                    debug!("Got service name {:?} from requirements.yml", val);
+                    service = Some(val);
                 }
             }
             Err(ref e) if e.kind() == std::io::ErrorKind::NotFound => (),
@@ -60,6 +65,7 @@ pub(crate) fn name(service: Option<String>) -> Result<String, Error> {
         let dir = std::env::current_dir()?;
         if let Some(os_str) = dir.file_name() {
             if let Some(opt_s) = os_str.to_str() {
+                debug!("Got service name {:?} from current dir", opt_s);
                 service = Some(opt_s.to_owned());
             } else {
                 Err(Error::NotUnicode(os_str.to_owned()))?
