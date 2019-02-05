@@ -1,0 +1,224 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "AVVOENV" "1" "February 2019" "" ""
+.
+.SH "NAME"
+\fBavvoenv\fR \- fetch service environment variables
+.
+.SH "SYNOPSIS"
+\fBavvoenv\fR [\fB\-h\fR|\fB\-\-help\fR] [\fB\-q\fR|\fB\-\-quiet\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fB\-v\fR|\fB\-\-verbose\fR]
+.
+.P
+\fBavvoenv\fR \fBexec\fR [\fB\-a\fR|\fB\-\-add\fR \fIkey\fR=\fIvalue\fR] [\fB\-c\fR|\fB\-\-consul\fR \fIurl\fR] [\fB\-\-dev\fR] [\fB\-e\fR|\fB\-\-exclude\fR \fIpattern\fR] [\fB\-F\fR|\fB\-\-force\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-I\fR|\fB\-\-isolate\fR] [\fB\-i\fR|\fB\-\-include\fR \fIpattern\fR] [\fB\-\-no\-rancher\-metadata\fR] [\fB\-p\fR|\fB\-\-app\-id\fR \fIapp\-id\fR] [\fB\-q\fR|\fB\-\-quiet\fR] [\fB\-r\fR|\fB\-\-app\-user\fR \fIapp\-user\fR] [\fB\-s\fR|\fB\-\-service\fR \fIname\fR] [\fB\-t\fR|\fB\-\-vault\-token\fR \fItoken\fR] [\fB\-u\fR|\fB\-\-vault\fR \fIurl\fR] [\fB\-v\fR|\fB\-\-verbose\fR] \fIcommand\fR
+.
+.P
+\fBavvoenv\fR \fBwrite\fR [\fB\-a\fR|\fB\-\-add\fR \fIkey\fR=\fIvalue\fR] [\fB\-c\fR|\fB\-\-consul\fR \fIurl\fR] [\fB\-\-dev\fR [\fIuser\fR]] [\fB\-e\fR|\fB\-\-exclude\fR \fIpattern\fR] [\fB\-f\fR|\fB\-\-format\fR \fIformat\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-i\fR|\fB\-\-include\fR \fIpattern\fR] [\fB\-\-no\-rancher\-metadata\fR] [\fB\-p\fR|\fB\-\-app\-id\fR \fIapp\-id\fR] [\fB\-q\fR|\fB\-\-quiet\fR] [\fB\-r\fR|\fB\-\-app\-user\fR \fIapp\-user\fR] [\fB\-s\fR|\fB\-\-service\fR \fIname\fR] [\fB\-t\fR|\fB\-\-vault\-token\fR \fItoken\fR] [\fB\-u\fR|\fB\-\-vault\fR \fIurl\fR] [\fB\-v\fR|\fB\-\-verbose\fR] \fIpath\fR
+.
+.P
+\fBavvoenv\fR \fBservice\fR [\fB\-h\fR|\fB\-\-help\fR] [\fB\-q\fR|\fB\-\-quiet\fR] [\fB\-s\fR|\fB\-\-service\fR \fIname\fR] [\fB\-v\fR|\fB\-\-verbose\fR]
+.
+.SH "DESCRIPTION"
+\fBavvoenv\fR fetches the environment variables for an Avvo service\.
+.
+.P
+The \fBexec\fR command will execute the given command with the fetched environment variables\.
+.
+.P
+The \fBwrite\fR command will write the fetched environment variables to a file\.
+.
+.P
+The \fBservice\fR command will print what avvoenv thinks is the name of the current service, or canonicalise the name given with the \fB\-\-service\fR option\.
+.
+.SH "OPTIONS"
+.
+.TP
+\fB\-a\fR, \fB\-\-add\fR \fIkey\fR=\fIvalue\fR
+Add an environment variable\. This option can be provided multiple times, and/or with a list of multiple space\-separated key value pairs\. In the second case the argument must be quoted\.
+.
+.TP
+\fB\-c\fR, \fB\-\-consul\fR \fIurl\fR
+Set the Consul URL, overriding the \fBCONSUL_HTTP_ADDR\fR environment variable, and the default of \fIhttp://127\.0\.0\.1:8500\fR\.
+.
+.TP
+\fB\-\-dev\fR
+Authenticate with Vault via LDAP instead of with the \fIvault\-token\fR\. Will prompt for a user and password on standard input\. The \fBUSER\fR environment variable is used as the default user name\.
+.
+.TP
+\fB\-e\fR, \fB\-\-exclude\fR \fIpattern\fR
+Exclude any fetched environment variables matching \fIpattern\fR, where \fIpattern\fR is a shell glob pattern\. \fB?\fR matches any single character\. \fB*\fR matches any sequence of characters or nothing\. \fB[\.\.\.]\fR matches any character inside the brackets, with \fB\-\fR specifying a range eg \fB[0\-9]\fR or \fB[a\-z]\fR \fB[!\.\.\.]\fR is the inverse of \fB[\.\.\.]\fR
+.
+.TP
+\fB\-F\fR, \fB\-\-force\fR
+Ignore errors and always execute \fIcommand\fR\. If any errors are encountered then only the inherited environment variables will be provided\.
+.
+.TP
+\fB\-f\fR, \fB\-\-format\fR \fIformat\fR
+Set the \fBwrite\fR output format\. Can be one of \fIenv\fR, \fIdefaults\fR, \fIyaml\fR, \fIjson\fR, \fIhocon\fR, or \fIproperties\fR\. If not provided the format will be determined from the file extension of the \fIpath\fR argument, defaulting to \fIenv\fR for unknown file extensions\.
+.
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Print the help output and exit\.
+.
+.TP
+\fB\-I\fR, \fB\-\-isolate\fR
+Ignores the inherited environment variables when executing \fIcommand\fR\.
+.
+.TP
+\fB\-i\fR, \fB\-\-include\fR \fIpattern\fR
+Exclude all fetched environment variables not matching \fIpattern\fR, where \fIpattern\fR is a shell glob pattern\. \fB?\fR matches any single character\. \fB*\fR matches any sequence of characters or nothing\. \fB[\.\.\.]\fR matches any character inside the brackets, with \fB\-\fR specifying a range eg \fB[0\-9]\fR or \fB[a\-z]\fR \fB[!\.\.\.]\fR is the inverse of \fB[\.\.\.]\fR
+.
+.TP
+\fB\-\-no\-rancher\-metadata\fR
+Skip environment variables fetched from the Rancher metadata\. On non\-Rancher environments the Rancher metadata will be automatically skipped\.
+.
+.TP
+\fB\-p\fR, \fB\-\-app\-id\fR \fIapp\-id\fR
+Authenticate with Vault via app\-id\. If the \fIapp\-id\fR argument is provided it will override the \fBVAULT_APP_ID\fR environment variable\.
+.
+.TP
+\fB\-q\fR, \fB\-\-quiet\fR
+Silence output\.
+.
+.TP
+\fB\-r\fR, \fB\-\-app\-user\fR \fIapp\-user\fR
+Set the user\-id for use with Vault app\-id authentication\. If the \fIapp\-user\fR argument is provided it will override the \fBVAULT_APP_USER\fR environment variable\.
+.
+.TP
+\fB\-s\fR, \fB\-\-service\fR \fIname\fR
+Set the service name, overriding the \fBSERVICE\fR environment variable\. If neither \fB\-\-service\fR or \fBSERVICE\fR are provided the \fB\./requirements\.yml\fR will be consulted, and if that\'s not present then working directory name will be used\.
+.
+.TP
+\fB\-t\fR, \fB\-\-vault\-token\fR \fItoken\fR
+Set the token used to authenticate with Vault, overriding the \fBVAULT_TOKEN\fR environment variable and \fB~/\.vault\-token\fR file\.
+.
+.TP
+\fB\-u\fR, \fB\-\-vault\fR \fIurl\fR
+Set the Vault URL, overriding the \fBVAULT_ADDR\fR environment variable, and the default of \fIhttps://127\.0\.0\.1:8200\fR\.
+.
+.TP
+\fB\-V\fR, \fB\-\-version\fR
+Print the version and exit\.
+.
+.TP
+\fB\-v\fR, \fB\-\-verbose\fR
+Verbose mode, multiples increase the verbosity\. \fB\-v\fR warn logging \fB\-vv\fR info logging \fB\-vvv\fR debug logging \fB\-vvvv\fR trace logging If not supplied, and \fB\-\-quiet\fR is also not supplied, then error logging\. The highest level of \fB\-\-verbose\fR or the \fBAVVOENV_LOG_LEVEL\fR will be used\.
+.
+.SH "EXAMPLES"
+Run the current service, with all options coming from the environment:
+.
+.IP "" 4
+.
+.nf
+
+avvoenv exec bin/server
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Print what \fBavvoenv\fR thinks the current service name is:
+.
+.IP "" 4
+.
+.nf
+
+avvoenv service
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Run the current service with config from the local (non\-SSL) Vault and Consul:
+.
+.IP "" 4
+.
+.nf
+
+avvoenv exec \e
+  \-\-vault \'http://127\.0\.0\.1:8200\' \e
+  \-\-vault\-token \'dev_root_token\' bin/server
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Write a defaults file for amos, with the Vault and Consul URLs, and Vault token from the environment:
+.
+.IP "" 4
+.
+.nf
+
+avvoenv write \-\-service amos amos\.defaults
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Display the current config for gnomon on staging (\fB\-\fR as the \fIpath\fR argument outputs to standard output):
+.
+.IP "" 4
+.
+.nf
+
+avvoenv write \-\-dev \-\-service gnomon \e
+  \-\-vault \'https://bcon1stag\.corp\.avvo\.com:8200\' \e
+  \-\-consul \'http://docker1stag\.corp\.avvo\.com:8500\' \-
+.
+.fi
+.
+.IP "" 0
+.
+.SH "FILES"
+.
+.TP
+\fB~/\.vault\-token\fR
+The token used to authenticate with Vault\.
+.
+.TP
+\fB\./requirements\.yml\fR
+Used to determine the service name when neither \fB\-\-service\fR or \fBSERVICE\fR are provided\.
+.
+.SH "ENVIRONMENT"
+.
+.TP
+\fBAVVOENV_LOG_LEVEL\fR
+Set the logging verbosity, either \fIerror\fR, \fIwarn\fR, \fIinfo\fR, \fIdebug\fR, \fItrace\fR or an integer from 0 to 4 inclusive\.
+.
+.TP
+\fBCONSUL_HTTP_ADDR\fR
+The Consul URL, overriding the default of \fIhttp://127\.0\.0\.1:8500\fR\.
+.
+.TP
+\fBSERVICE\fR
+The service name, overriding that in the \fB\./requirements\.yml\fR (or the working directory name if that\'s not present)\.
+.
+.TP
+\fBUSER\fR
+The default user to authenticate as with the \fB\-\-dev\fR option\.
+.
+.TP
+\fBVAULT_ADDR\fR
+The Vault URL, overriding the default of \fIhttps://127\.0\.0\.1:8200\fR\.
+.
+.TP
+\fBVAULT_APP_ID\fR
+The application ID used with Vault app\-id authentication\.
+.
+.TP
+\fBVAULT_APP_USER\fR
+The application user ID used with Vault app\-id authentication\.
+.
+.TP
+\fBVAULT_TOKEN\fR
+The token used to authenticate with Vault, overriding the \fB~/\.vault\-token\fR file\.
+.
+.SH "AUTHORS"
+\fBavvoenv\fR is written and maintained by the Avvo Infrastructure Team \fIinfrastructure@avvo\.com\fR
+.
+.SH "SEE ALSO"
+vault(1), consul(1), exec(2)
