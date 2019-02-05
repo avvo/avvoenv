@@ -8,6 +8,7 @@ mod service;
 mod vault;
 
 use std::{
+    cmp::max,
     fs::File,
     io,
     os::unix::process::CommandExt,
@@ -30,10 +31,13 @@ use format::Format;
 fn main() {
     let opts = Opts::from_args();
 
+    let verbosity = std::env::var("AVVOENV_LOG_LEVEL")
+        .map(verbosity)
+        .unwrap_or(0);
     stderrlog::new()
         .module(module_path!())
         .quiet(opts.quiet)
-        .verbosity(opts.verbosity)
+        .verbosity(max(verbosity, opts.verbosity))
         .init()
         .unwrap();
 
@@ -50,6 +54,17 @@ fn main() {
         debug!("{:?}", e);
         error!("{}", e);
         std::process::exit(1);
+    }
+}
+
+fn verbosity(s: String) -> usize {
+    match s.parse() {
+        Ok(log::Level::Error) => 0,
+        Ok(log::Level::Warn) => 1,
+        Ok(log::Level::Info) => 2,
+        Ok(log::Level::Debug) => 3,
+        Ok(log::Level::Trace) => 4,
+        Err(_) => s.parse().unwrap_or(0),
     }
 }
 

@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    fmt,
+    env, fmt,
     io::{self, Read},
     path::PathBuf,
 };
@@ -112,7 +112,7 @@ pub(crate) fn fetch(opts: FetchOpts) -> Result<HashMap<String, String>, Error> {
 
     if opts.dev {
         info!("Authenticating with Vault via LDAP");
-        let user = prompt_default("Vault username: ", std::env::var("USER").ok())?;
+        let user = prompt_default("Vault username: ", env::var("USER").ok())?;
         let password = prompt_password("Vault password: ")?;
         vault.ldap_auth(&user, &password)?;
     } else if let (Some(app_id), Some(app_user)) = (&opts.app_id, &opts.app_user) {
