@@ -1,7 +1,2 @@
-target
-Gemfile.lock
-avvoenv-*.tar.gz
-avvoenv-*.zip
-/avvoenv/
-.gem
-.rust-musl-builder/
+/target
+**/*.rs.bk

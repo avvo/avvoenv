@@ -1,20 +1,25 @@
 [package]
 name = "avvoenv"
-version = "0.4.2"
+version = "2.0.0"
 authors = ["Avvo Infrastructure Team <infrastructure@avvo.com>"]
+edition = "2018"
 license = "MIT"
 
+[profile.release]
+lto = true
+codegen-units = 1
+incremental = false
+opt-level = "z"
+
 [dependencies]
-getopts = "0.2"
-reqwest = "0.7"
-# reqwest doesn't yet (re)export a macro for creating custom header types, so
-# we need to directly depend on hyper for that for the moment
-hyper = "0.11"
-serde = "1.0"
-serde_json = "1.0"
-serde_yaml = "0.7"
-serde_derive = "1.0"
-shell-escape = "0.1"
-rpassword = "1.0"
-shlex = "0.1"
+dirs = "1.0"
 glob = "0.2"
+log = "0.4"
+reqwest = "0.9"
+rpassword = "2.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.8"
+shell-escape = "0.1"
+stderrlog = "0.4"
+structopt = "0.2"

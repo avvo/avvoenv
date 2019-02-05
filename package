@@ -1,0 +1,35 @@
+#!/bin/sh
+
+set -euo pipefail
+
+if [ "$(uname)" != 'Darwin' ]; then
+  echo 'script intended to run on macOS'
+  exit 1
+fi
+
+set -x
+
+# build for mac
+cargo build --release
+
+mkdir -p target/package/avvoenv/
+cp target/release/avvoenv target/package/avvoenv/
+strip target/package/avvoenv/avvoenv
+cp avvoenv.1 target/package/avvoenv/
+cp install.sh target/package/avvoenv/
+pushd target/package/
+zip -r avvoenv-mac.zip avvoenv
+popd
+
+# build for linux
+docker pull clux/muslrust:stable
+docker run -v "$(pwd):/volume" -t clux/muslrust:stable cargo build --release
+
+mkdir -p target/x86_64-unknown-linux-musl/package/avvoenv/
+cp target/x86_64-unknown-linux-musl/release/avvoenv target/x86_64-unknown-linux-musl/package/avvoenv/
+docker run -v "$(pwd):/volume" -t clux/muslrust:stable strip target/x86_64-unknown-linux-musl/package/avvoenv/avvoenv
+cp avvoenv.1 target/x86_64-unknown-linux-musl/package/avvoenv/
+cp install.sh target/x86_64-unknown-linux-musl/package/avvoenv/
+pushd target/x86_64-unknown-linux-musl/package
+tar -czf avvoenv-linux.tar.gz avvoenv
+popd

@@ -3,21 +3,24 @@ avvoenv(1) -- fetch service environment variables
 
 ## SYNOPSIS
 
-`avvoenv` [`-h`|`--help`] [`-v`|`--version`]
+`avvoenv` [`-h`|`--help`] [`-q`|`--quiet`] [`-V`|`--version`] [`-v`|`--verbose`]
 
 `avvoenv` `exec` [`-a`|`--add` <key>=<value>]
                  [`-c`|`--consul` <url>]
-                 [`--dev` [<user>]]
+                 [`--dev`]
                  [`-e`|`--exclude` <pattern>]
                  [`-F`|`--force`]
+                 [`-h`|`--help`]
                  [`-I`|`--isolate`]
                  [`-i`|`--include` <pattern>]
                  [`--no-rancher-metadata`]
                  [`-p`|`--app-id` <app-id>]
+                 [`-q`|`--quiet`]
                  [`-r`|`--app-user` <app-user>]
                  [`-s`|`--service` <name>]
                  [`-t`|`--vault-token` <token>]
                  [`-u`|`--vault` <url>]
+                 [`-v`|`--verbose`]
                  <command>
 
 `avvoenv` `write` [`-a`|`--add` <key>=<value>]
@@ -25,16 +28,22 @@ avvoenv(1) -- fetch service environment variables
                   [`--dev` [<user>]]
                   [`-e`|`--exclude` <pattern>]
                   [`-f`|`--format` <format>]
+                  [`-h`|`--help`]
                   [`-i`|`--include` <pattern>]
                   [`--no-rancher-metadata`]
                   [`-p`|`--app-id` <app-id>]
+                  [`-q`|`--quiet`]
                   [`-r`|`--app-user` <app-user>]
                   [`-s`|`--service` <name>]
                   [`-t`|`--vault-token` <token>]
                   [`-u`|`--vault` <url>]
+                  [`-v`|`--verbose`]
                   <path>
 
-`avvoenv` `service` [`-s`|`--service` <name>]
+`avvoenv` `service` [`-h`|`--help`]
+                    [`-q`|`--quiet`]
+                    [`-s`|`--service` <name>]
+                    [`-v`|`--verbose`]
 
 ## DESCRIPTION
 
@@ -59,10 +68,10 @@ current service, or canonicalise the name given with the `--service` option.
     Set the Consul URL, overriding the `CONSUL_HTTP_ADDR` environment variable,
     and the default of <http://127.0.0.1:8500>.
 
-  * `--dev` [<user>]:
-    Authenticate with Vault via LDAP as <user> instead of with the
-    <vault-token>. Will prompt for a password on standard input. If the <user>
-    argument is provided it will override the `USER` environment variable.
+  * `--dev`:
+    Authenticate with Vault via LDAP instead of with the <vault-token>. Will
+    prompt for a user and password on standard input. The `USER` environment
+    variable is used as the default user name.
 
   * `-e`, `--exclude` <pattern>:
     Exclude any fetched environment variables matching <pattern>, where
@@ -99,15 +108,20 @@ current service, or canonicalise the name given with the `--service` option.
     `[!...]` is the inverse of `[...]`
 
   * `--no-rancher-metadata`:
-    Skip environment variables fetched from the Rancher metadata.
+    Skip environment variables fetched from the Rancher metadata. On
+    non-Rancher environments the Rancher metadata will be automatically skipped.
 
   * `-p`, `--app-id` <app-id>:
     Authenticate with Vault via app-id. If the <app-id> argument is provided
     it will override the `VAULT_APP_ID` environment variable.
 
+  * `-q`, `--quiet`:
+    Silence output.
+
   * `-r`, `--app-user` <app-user>:
     Set the user-id for use with Vault app-id authentication. If the <app-user>
-    argument is provided it will override the `VAULT_APP_USER` environment variable.
+    argument is provided it will override the `VAULT_APP_USER` environment
+    variable.
 
   * `-s`, `--service` <name>:
     Set the service name, overriding the `SERVICE` environment variable.
@@ -123,8 +137,17 @@ current service, or canonicalise the name given with the `--service` option.
     Set the Vault URL, overriding the `VAULT_ADDR` environment variable, and
     the default of <https://127.0.0.1:8200>.
 
-  * `-v`, `--version`:
+  * `-V`, `--version`:
     Print the version and exit.
+
+  * `-v`, `--verbose`:
+    Verbose mode, multiples increase the verbosity.
+    `-v` warn logging
+    `-vv` info logging
+    `-vvv` debug logging
+    `-vvvv` trace logging
+    If not supplied, and `--quiet` is also not supplied, then error logging.
+    The highest level of `--verbose` or the `AVVOENV_LOG_LEVEL` will be used.
 
 ## EXAMPLES
 
@@ -165,6 +188,10 @@ outputs to standard output):
 
 ## ENVIRONMENT
 
+  * `AVVOENV_LOG_LEVEL`:
+    Set the logging verbosity, either <error>, <warn>, <info>, <debug>, <trace>
+    or an integer from 0 to 4 inclusive.
+
   * `CONSUL_HTTP_ADDR`:
     The Consul URL, overriding the default of <http://127.0.0.1:8500>.
 
@@ -173,7 +200,7 @@ outputs to standard output):
     working directory name if that's not present).
 
   * `USER`:
-    The user to authenticate as with the `--dev` option.
+    The default user to authenticate as with the `--dev` option.
 
   * `VAULT_ADDR`:
     The Vault URL, overriding the default of <https://127.0.0.1:8200>.
