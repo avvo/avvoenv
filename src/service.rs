@@ -51,10 +51,9 @@ pub(crate) fn name(service: Option<String>) -> Result<String, Error> {
             Ok(f) => {
                 let buf = std::io::BufReader::new(f);
                 let reqs: serde_yaml::Value = serde_yaml::from_reader(buf)?;
-                if let Some(value) = reqs.get("service_name") {
-                    let val = serde_yaml::to_string(value)?;
+                if let Some(serde_yaml::Value::String(val)) = reqs.get("service_name") {
                     debug!("Got service name {:?} from requirements.yml", val);
-                    service = Some(val);
+                    service = Some(val.clone());
                 }
             }
             Err(ref e) if e.kind() == std::io::ErrorKind::NotFound => (),
