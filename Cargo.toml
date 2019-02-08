@@ -1,6 +1,6 @@
 [package]
 name = "avvoenv"
-version = "2.0.1"
+version = "2.0.2"
 authors = ["Avvo Infrastructure Team <infrastructure@avvo.com>"]
 edition = "2018"
 license = "MIT"

@@ -73,7 +73,7 @@ fn verbosity(s: String) -> usize {
     author = "",
     raw(
         version = "env!(\"CARGO_PKG_VERSION\")",
-        settings = "&[ArgsNegateSubcommands, ArgRequiredElseHelp, DisableHelpSubcommand, TrailingVarArg, VersionlessSubcommands]"
+        settings = "&[ArgsNegateSubcommands, ArgRequiredElseHelp, DisableHelpSubcommand, VersionlessSubcommands]"
     )
 )]
 struct Opts {
@@ -104,7 +104,7 @@ struct Opts {
 #[derive(StructOpt, Debug)]
 enum Subcommand {
     /// Execute the given command with the fetched environment variables
-    #[structopt(name = "exec", author = "", version = "")]
+    #[structopt(name = "exec", author = "", version = "", raw(setting = "TrailingVarArg"))]
     Exec(ExecOpts),
     /// Write the fetched environment variables to a file
     #[structopt(name = "write", author = "", version = "")]
@@ -189,7 +189,6 @@ fn parse_add(s: &str) -> (String, String) {
 }
 
 #[derive(StructOpt, Debug)]
-#[structopt(raw(setting = "TrailingVarArg"))]
 struct ExecOpts {
     #[structopt(flatten)]
     fetch: FetchOpts,
@@ -240,7 +239,6 @@ fn exec(opts: ExecOpts) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[derive(StructOpt, Debug)]
-#[structopt(raw(setting = "TrailingVarArg"))]
 struct WriteOpts {
     #[structopt(flatten)]
     fetch: FetchOpts,
