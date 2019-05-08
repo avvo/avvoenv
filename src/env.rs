@@ -208,7 +208,8 @@ fn fill_dependencies(
         None => return Ok(()),
     };
     trace!("Got dependencies: {:?}", deps);
-    for dep in deps {
+
+    for dep in &deps {
         let key = format!("{}_BASE_URL", dep.replace("-", "_").to_uppercase());
         match client.get::<String>(&format!("infrastructure/service-uris/{}", key)) {
             Ok(Some(val)) => {
@@ -218,25 +219,18 @@ fn fill_dependencies(
             Ok(None) => warn!("Missing URL for {}", dep),
             Err(e) => return Err(e.into()),
         };
-    }
 
-    let dependencies = match client.get::<Vec<String>>(&format!("config/{}/dependencies", app))? {
-        Some(v) => v,
-        None => return Ok(()),
-    };
-    trace!("Got dependencies to populate frontend urls: {:?}", dependencies);
-
-    for dependency in dependencies {
-        let key = format!("{}_FRONTEND_URL", dependency.replace("-", "_").to_uppercase());
-        match client.get::<String>(&format!("infrastructure/service-uris/{}", key)) {
+        let frontend_key = format!("{}_FRONTEND_URL", dep.replace("-", "_").to_uppercase());
+        match client.get::<String>(&format!("infrastructure/service-uris/{}", frontend_key)) {
             Ok(Some(val)) => {
-                trace!("Merging to environment: {:?}: {:?}", key, val);
-                env.insert(key, val);
+                trace!("Merging to environment: {:?}: {:?}", frontend_key, val);
+                env.insert(frontend_key, val);
             }
-            Ok(None) => (),
+            Ok(None) => warn!("FrontendURL for {} either not needed or not set", dep),
             Err(e) => return Err(e.into()),
         };
     }
+
     Ok(())
 }
 
