@@ -220,8 +220,14 @@ fn fill_dependencies(
         };
     }
 
-    for dep in deps {
-        let key = format!("{}_FRONTEND_URL", dep.replace("-", "_").to_uppercase());
+    let dependencies = match client.get::<Vec<String>>(&format!("config/{}/dependencies", app))? {
+        Some(v) => v,
+        None => return Ok(()),
+    };
+    trace!("Got dependencies to populate frontend urls: {:?}", dependencies);
+
+    for dependency in dependencies {
+        let key = format!("{}_FRONTEND_URL", dependency.replace("-", "_").to_uppercase());
         match client.get::<String>(&format!("infrastructure/service-uris/{}", key)) {
             Ok(Some(val)) => {
                 trace!("Merging to environment: {:?}: {:?}", key, val);
