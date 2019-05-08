@@ -219,6 +219,18 @@ fn fill_dependencies(
             Err(e) => return Err(e.into()),
         };
     }
+
+    for dep in deps {
+        let key = format!("{}_FRONTEND_URL", dep.replace("-", "_").to_uppercase());
+        match client.get::<String>(&format!("infrastructure/service-uris/{}", key)) {
+            Ok(Some(val)) => {
+                trace!("Merging to environment: {:?}: {:?}", key, val);
+                env.insert(key, val);
+            }
+            Ok(None) => (),
+            Err(e) => return Err(e.into()),
+        };
+    }
     Ok(())
 }
 
