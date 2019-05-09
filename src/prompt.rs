@@ -12,10 +12,10 @@ pub fn prompt_default(prompt: &str, default: Option<String>) -> Result<String> {
 
     let mut result = String::new();
     stdin().read_line(&mut result)?;
-    if result.chars().last() == Some('\n') {
+    if result.ends_with('\n') {
         result.pop();
     }
-    if result.chars().last() == Some('\r') {
+    if result.ends_with('\r') {
         result.pop();
     }
     match (result.as_ref(), default) {

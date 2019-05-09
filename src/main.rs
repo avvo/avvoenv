@@ -104,7 +104,12 @@ struct Opts {
 #[derive(StructOpt, Debug)]
 enum Subcommand {
     /// Execute the given command with the fetched environment variables
-    #[structopt(name = "exec", author = "", version = "", raw(setting = "TrailingVarArg"))]
+    #[structopt(
+        name = "exec",
+        author = "",
+        version = "",
+        raw(setting = "TrailingVarArg")
+    )]
     Exec(ExecOpts),
     /// Write the fetched environment variables to a file
     #[structopt(name = "write", author = "", version = "")]
@@ -181,7 +186,7 @@ pub(crate) struct FetchOpts {
 }
 
 fn parse_add(s: &str) -> (String, String) {
-    let mut parts = s.splitn(2, "=");
+    let mut parts = s.splitn(2, '=');
     (
         parts.next().unwrap().to_string(),
         parts.next().unwrap_or("").to_string(),
@@ -206,7 +211,7 @@ struct ExecOpts {
 fn exec(opts: ExecOpts) -> Result<(), Box<dyn std::error::Error>> {
     trace!("Running exec subcommand");
 
-    if opts.cmd.len() < 1 {
+    if opts.cmd.is_empty() {
         info!("Required argument CMD was not provided");
         ExecOpts::clap().write_help(&mut std::io::stderr()).unwrap();
         std::process::exit(1);

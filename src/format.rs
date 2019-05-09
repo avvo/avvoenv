@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     error::Error,
+    ffi::OsStr,
     fmt,
     io::{self, Write},
     path::Path,
@@ -19,7 +20,7 @@ pub enum Format {
 
 impl Format {
     pub fn from_path<P: AsRef<Path>>(path: P) -> Format {
-        match path.as_ref().extension().and_then(|p| p.to_str()) {
+        match path.as_ref().extension().and_then(OsStr::to_str) {
             Some("defaults") | Some("sh") => Format::Defaults,
             Some("hocon") => Format::Hocon,
             Some("js") | Some("json") => Format::Json,
@@ -119,7 +120,7 @@ impl From<serde_yaml::Error> for FormatError {
 
 fn write_env<W: Write>(mut writer: W, env: HashMap<String, String>) -> Result<(), FormatError> {
     for (key, val) in env {
-        write!(writer, "{}={}\n", key, val)?;
+        writeln!(writer, "{}={}", key, val)?;
     }
     Ok(())
 }
@@ -129,9 +130,9 @@ fn write_defaults<W: Write>(
     env: HashMap<String, String>,
 ) -> Result<(), FormatError> {
     for (key, val) in env {
-        write!(
+        writeln!(
             writer,
-            "export {}={}\n",
+            "export {}={}",
             key,
             shell_escape::escape(val.into())
         )?;
@@ -153,7 +154,7 @@ fn write_hocon<W: Write>(mut writer: W, env: HashMap<String, String>) -> Result<
     for (key, val) in env {
         write!(writer, "{} : ", key)?;
         serde_json::to_writer(&mut writer, &val)?;
-        write!(writer, "\n")?;
+        writeln!(writer)?;
     }
     Ok(())
 }
@@ -183,7 +184,7 @@ fn write_properties<W: Write>(
                 _ => write!(writer, "{}", c)?,
             }
         }
-        write!(writer, "\n")?;
+        writeln!(writer)?;
     }
     Ok(())
 }

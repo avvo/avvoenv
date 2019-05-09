@@ -132,7 +132,7 @@ impl Client {
                 Err(e) => {
                     tries += 1;
                     if tries > 5 {
-                        return Err(e.into());
+                        return Err(e);
                     }
                     sleep(Duration::from_secs(tries));
                 }

@@ -123,7 +123,7 @@ pub(crate) fn fetch(opts: FetchOpts) -> Result<HashMap<String, String>, Error> {
         vault.token(token);
     } else {
         debug!("Using Vault token from ~/.vault-token");
-        let mut path = home_dir().unwrap_or(PathBuf::from("/"));
+        let mut path = home_dir().unwrap_or_else(|| PathBuf::from("/"));
         path.push(".vault-token");
         let f = std::fs::File::open(path)?;
         let mut reader = std::io::BufReader::new(f);

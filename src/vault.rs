@@ -37,7 +37,7 @@ impl FromStr for Secret {
 impl fmt::Debug for Secret {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_tuple("Secret")
-            .field(&format!("{}", "*".repeat(self.0.len())))
+            .field(&"*".repeat(self.0.len()).to_string())
             .finish()
     }
 }
