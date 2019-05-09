@@ -208,7 +208,6 @@ fn fill_dependencies(
         None => return Ok(()),
     };
     trace!("Got dependencies: {:?}", deps);
-
     for dep in deps {
         let key = format!("{}_BASE_URL", dep.replace("-", "_").to_uppercase());
         match client.get::<String>(&format!("infrastructure/service-uris/{}", key)) {
