@@ -218,6 +218,16 @@ fn fill_dependencies(
             Ok(None) => warn!("Missing URL for {}", dep),
             Err(e) => return Err(e.into()),
         };
+
+        let frontend_key = format!("{}_FRONTEND_URL", dep.replace("-", "_").to_uppercase());
+        match client.get::<String>(&format!("infrastructure/service-uris/{}", frontend_key)) {
+            Ok(Some(val)) => {
+                trace!("Merging to environment: {:?}: {:?}", frontend_key, val);
+                env.insert(frontend_key, val);
+            }
+            Ok(None) => info!("Frontend URL for {} either not needed or not set", dep),
+            Err(e) => return Err(e.into()),
+        };
     }
     Ok(())
 }
