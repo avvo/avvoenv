@@ -7,13 +7,12 @@ See [the man page](avvoenv.1.ronn) for more details.
 
 ## Build
 
-avvoenv is written in [Rust] 2018 Edition, using Rust 1.32. You can install
+avvoenv is written in [Rust] 2018 Edition, using Rust 1.34. You can install
 Rust using [rustup]. [Cargo] is used to build avvoenv and manage dependencies.
 If you're new to Rust, [The Rust Programming Language][book] - an introductory
 book about Rust - is available free online.
 
 [Rust]: https://www.rust-lang.org/
-[Actix Web]: https://actix.rs
 [rustup]: https://www.rust-lang.org/en-US/install.html
 [Cargo]: https://doc.rust-lang.org/stable/cargo/
 [book]: https://doc.rust-lang.org/book/2018-edition/index.html
