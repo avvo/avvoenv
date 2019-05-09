@@ -225,7 +225,7 @@ fn fill_dependencies(
                 trace!("Merging to environment: {:?}: {:?}", frontend_key, val);
                 env.insert(frontend_key, val);
             }
-            Ok(None) => warn!("Frontend URL for {} either not needed or not set", dep),
+            Ok(None) => info!("Frontend URL for {} either not needed or not set", dep),
             Err(e) => return Err(e.into()),
         };
     }
