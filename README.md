@@ -80,7 +80,7 @@ During development you can build and run avvoenv with:
         -h, --help                   Prints help information
         -I, --isolate                ignore the inherited env when executing <command>
         -q, --quiet                  Silence output
-            --no-rancher-metadata
+            --no-rancher-metadata    [env: NO_RANCHER_METADATA=]
         -V, --version                Prints version information
         -v, --verbose                Verbose mode, multiples increase the verbosity
 
@@ -111,6 +111,7 @@ avvoenv can also be configured with a number of environment variables:
 |----------------------|---
 | AVVOENV_LOG_LEVEL    | Set the logging verbosity
 | CONSUL_HTTP_ADDR     | Set the consul host
+| NO_RANCHER_METADATA  | Skip fetching from the Rancher metadata
 | SERVICE              | Set the service name
 | USER                 | The default user for Vault LDAP auth
 | VAULT_ADDR           | Set the vault host

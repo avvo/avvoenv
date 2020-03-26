@@ -166,6 +166,7 @@ pub(crate) struct FetchOpts {
         env = "VAULT_APP_ID"
     )]
     app_id: Option<String>,
+    /// [env: NO_RANCHER_METADATA=]
     #[structopt(long = "no-rancher-metadata")]
     skip_rancher_metadata: bool,
 }

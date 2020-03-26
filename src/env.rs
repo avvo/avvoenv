@@ -132,7 +132,10 @@ pub(crate) fn fetch(opts: FetchOpts) -> Result<HashMap<String, String>, Error> {
         vault.token(string.trim().parse()?);
     }
 
-    if !opts.skip_rancher_metadata && rancher_metadata::is_available() {
+    if !opts.skip_rancher_metadata
+        && !skip_rancher_metadata_env()
+        && rancher_metadata::is_available()
+    {
         debug!("Fetching config from Rancher");
         let rancher = rancher_metadata::Client::new();
         if let Some(info) = rancher.info()? {
@@ -244,4 +247,15 @@ fn fill_generated(
         env.extend(generated);
     }
     Ok(())
+}
+
+fn skip_rancher_metadata_env() -> bool {
+    match std::env::var("NO_RANCHER_METADATA")
+        .ok()
+        .map(|s| s.to_lowercase())
+        .as_deref()
+    {
+        Some("false") | Some("0") | Some("no") | None => false,
+        Some(_) => true,
+    }
 }

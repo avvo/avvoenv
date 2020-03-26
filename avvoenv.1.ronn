@@ -110,6 +110,7 @@ current service, or canonicalise the name given with the `--service` option.
   * `--no-rancher-metadata`:
     Skip environment variables fetched from the Rancher metadata. On
     non-Rancher environments the Rancher metadata will be automatically skipped.
+    See also the `NO_RANCHER_METADATA` environment variable.
 
   * `-p`, `--app-id` <app-id>:
     Authenticate with Vault via app-id. If the <app-id> argument is provided
@@ -194,6 +195,11 @@ outputs to standard output):
 
   * `CONSUL_HTTP_ADDR`:
     The Consul URL, overriding the default of <http://127.0.0.1:8500>.
+
+  * `NO_RANCHER_METADATA`:
+    If set (to any value) skip environment variables fetched from the Rancher
+    metadata. On non-Rancher environments the Rancher metadata will be
+    automatically skipped. See also the `--no-rancher-metadata` option.
 
   * `SERVICE`:
     The service name, overriding that in the `./requirements.yml` (or the
