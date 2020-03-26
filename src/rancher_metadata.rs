@@ -12,7 +12,7 @@ pub fn is_available() -> bool {
 
 pub struct Client {
     address: Url,
-    http: reqwest::Client,
+    http: reqwest::blocking::Client,
 }
 
 #[derive(Deserialize)]
@@ -94,7 +94,7 @@ impl Client {
     pub fn new() -> Client {
         Client {
             address: "http://rancher-metadata/2015-12-19/".parse().unwrap(),
-            http: reqwest::Client::new(),
+            http: reqwest::blocking::Client::new(),
         }
     }
 
@@ -108,7 +108,7 @@ impl Client {
             .get(url.clone())
             .header(reqwest::header::ACCEPT, "application/json");
         trace!("{:?}", request);
-        let mut response = request
+        let response = request
             .send()
             .map_err(|e| ClientError::with_url(url.clone(), e))?;
         trace!("{:?}", response);

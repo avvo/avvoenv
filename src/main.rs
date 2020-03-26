@@ -70,34 +70,20 @@ fn verbosity(s: String) -> usize {
 
 #[derive(StructOpt, Debug)]
 #[structopt(
-    author = "",
-    raw(
-        version = "env!(\"CARGO_PKG_VERSION\")",
-        settings = "&[ArgsNegateSubcommands, ArgRequiredElseHelp, DisableHelpSubcommand, VersionlessSubcommands]"
-    )
+    settings = &[ArgsNegateSubcommands, ArgRequiredElseHelp, DisableHelpSubcommand, VersionlessSubcommands]
 )]
 struct Opts {
     /// Verbose mode, multiples increase the verbosity
-    #[structopt(
-        short = "v",
-        long = "verbose",
-        parse(from_occurrences),
-        raw(global = "true")
-    )]
+    #[structopt(short = "v", long = "verbose", parse(from_occurrences), global = true)]
     verbosity: usize,
     /// Silence output
-    #[structopt(
-        short = "q",
-        long = "quiet",
-        raw(global = "true"),
-        conflicts_with = "verbose"
-    )]
+    #[structopt(short = "q", long = "quiet", global = true, conflicts_with = "verbose")]
     quiet: bool,
     #[structopt(subcommand)]
     subcommand: Option<Subcommand>,
-    #[structopt(raw(empty_values = "false", hidden = "true"))]
+    #[structopt(empty_values = false, hidden = true)]
     script: Option<String>,
-    #[structopt(raw(hidden = "true"))]
+    #[structopt(hidden = true)]
     args: Vec<String>,
 }
 
@@ -106,16 +92,15 @@ enum Subcommand {
     /// Execute the given command with the fetched environment variables
     #[structopt(
         name = "exec",
-        author = "",
-        version = "",
-        raw(setting = "TrailingVarArg")
+        no_version,
+        setting = TrailingVarArg
     )]
     Exec(ExecOpts),
     /// Write the fetched environment variables to a file
-    #[structopt(name = "write", author = "", version = "")]
+    #[structopt(name = "write", no_version)]
     Write(WriteOpts),
     /// Print the canonical name of the current service
-    #[structopt(name = "service", author = "", version = "")]
+    #[structopt(name = "service", no_version)]
     Service(ServiceOpts),
 }
 
@@ -143,7 +128,7 @@ pub(crate) struct FetchOpts {
         short = "a",
         long = "add",
         value_name = "KEY=VALUE",
-        parse(from_str = "parse_add")
+        parse(from_str = parse_add)
     )]
     add: Vec<(String, String)>,
     /// filter fetched variables
@@ -158,7 +143,7 @@ pub(crate) struct FetchOpts {
         long = "vault-token",
         value_name = "TOKEN",
         env = "VAULT_TOKEN",
-        raw(required_unless_one = r#"&["dev", "app_user", "app_id"]"#)
+        required_unless_one = &["dev", "app_user", "app_id"]
     )]
     token: Option<vault::Secret>,
     /// authenticate with vault app-user
@@ -252,7 +237,7 @@ struct WriteOpts {
         short = "f",
         long = "format",
         value_name = "FORMAT",
-        raw(possible_values = r#"&["env", "defaults", "hcon", "json", "properties", "yaml"]"#)
+        possible_values = &["env", "defaults", "hcon", "json", "properties", "yaml"]
     )]
     format: Option<Format>,
     /// File to write

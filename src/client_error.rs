@@ -11,8 +11,8 @@ pub enum ClientError {
         url: reqwest::Url,
         source: reqwest::Error,
     },
-    ServerError(reqwest::Response),
-    UrlError(reqwest::UrlError),
+    ServerError(reqwest::blocking::Response),
+    UrlError(url::ParseError),
 }
 
 impl ClientError {
@@ -48,8 +48,8 @@ impl Error for ClientError {
     }
 }
 
-impl From<reqwest::UrlError> for ClientError {
-    fn from(e: reqwest::UrlError) -> ClientError {
+impl From<url::ParseError> for ClientError {
+    fn from(e: url::ParseError) -> ClientError {
         ClientError::UrlError(e)
     }
 }
@@ -66,8 +66,8 @@ impl From<(reqwest::Url, serde_json::Error)> for ClientError {
     }
 }
 
-impl From<reqwest::Response> for ClientError {
-    fn from(response: reqwest::Response) -> ClientError {
+impl From<reqwest::blocking::Response> for ClientError {
+    fn from(response: reqwest::blocking::Response) -> ClientError {
         ClientError::ServerError(response)
     }
 }

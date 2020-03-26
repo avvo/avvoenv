@@ -10,7 +10,7 @@ use crate::client_error::ClientError;
 pub struct Client {
     address: Url,
     token: Option<Secret>,
-    http: reqwest::Client,
+    http: reqwest::blocking::Client,
 }
 
 pub struct Secret(String);
@@ -108,7 +108,7 @@ impl Client {
         Ok(Client {
             address,
             token: None,
-            http: reqwest::Client::new(),
+            http: reqwest::blocking::Client::new(),
         })
     }
 
@@ -173,7 +173,7 @@ impl Client {
         if let Some(Secret(ref token)) = self.token {
             request = request.header("X-Vault-Token", token.as_str());
         };
-        let mut response = request
+        let response = request
             .send()
             .map_err(|e| ClientError::with_url(url.clone(), e))?;
         trace!("{:?}", response);
@@ -193,7 +193,7 @@ impl Client {
         if let Some(Secret(ref token)) = self.token {
             request = request.header("X-Vault-Token", token.as_str());
         };
-        let mut response = request
+        let response = request
             .send()
             .map_err(|e| ClientError::with_url(url.clone(), e))?;
         trace!("{:?}", response);
