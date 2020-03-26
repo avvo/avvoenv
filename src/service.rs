@@ -67,7 +67,7 @@ pub(crate) fn name(service: Option<String>) -> Result<String, Error> {
                 debug!("Got service name {:?} from current dir", opt_s);
                 service = Some(opt_s.to_owned());
             } else {
-                Err(Error::NotUnicode(os_str.to_owned()))?
+                return Err(Error::NotUnicode(os_str.to_owned()))
             }
         }
     };
