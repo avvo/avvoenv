@@ -1,5 +1,8 @@
 use std::{fmt, str::FromStr};
 
+use std::fs::File;
+use std::io::Read;
+
 use log::{debug, trace, warn};
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
@@ -62,6 +65,12 @@ struct LdapAuthRequest<'a> {
 #[derive(Serialize)]
 struct AppIdAuthRequest<'a> {
     user_id: &'a str,
+}
+
+#[derive(Serialize)]
+pub struct AuthKubernetesRequest {
+    pub jwt: String,
+    pub role: String
 }
 
 #[derive(Deserialize)]
@@ -131,6 +140,20 @@ impl Client {
         let request = AppIdAuthRequest { user_id };
         let response: AuthResponseWrapper =
             self.post(&format!("auth/app-id/login/{}", app_id), &request)?;
+        self.token = Some(Secret(response.auth.client_token));
+        Ok(())
+    }
+
+    pub fn kubernetes_auth(&mut self, role: String) -> Result<(), Error> {
+        let mut file = File::open("/var/run/secrets/kubernetes.io/serviceaccount/token").expect("Unable to open");
+        let mut jwt = String::new();
+        file.read_to_string(&mut jwt);
+        // .is_err() {
+        //     return Err(Error::);
+        //     // return Err(String::from("Kubernetes authentication failed"));
+        // };
+        let request = AuthKubernetesRequest { jwt, role };
+        let response: AuthResponseWrapper = self.post(&format!("auth/kubernetes/login"), &request)?;
         self.token = Some(Secret(response.auth.client_token));
         Ok(())
     }
