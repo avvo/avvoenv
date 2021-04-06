@@ -123,6 +123,9 @@ pub(crate) struct FetchOpts {
     /// authenticate with vault
     #[structopt(long = "dev")]
     dev: bool,
+    /// use Kubernetes ServiceAccount to get token
+    #[structopt(long = "kube")]
+    kube: bool,
     /// add an environment variable
     #[structopt(
         short = "a",
@@ -143,7 +146,7 @@ pub(crate) struct FetchOpts {
         long = "vault-token",
         value_name = "TOKEN",
         env = "VAULT_TOKEN",
-        required_unless_one = &["dev", "app_user", "app_id"]
+        required_unless_one = &["dev", "kube", "app_user", "app_id"]
     )]
     token: Option<vault::Secret>,
     /// authenticate with vault app-user

@@ -115,6 +115,10 @@ pub(crate) fn fetch(opts: FetchOpts) -> Result<HashMap<String, String>, Error> {
         let user = prompt_default("Vault username: ", env::var("USER").ok())?;
         let password = prompt_password("Vault password: ")?;
         vault.ldap_auth(&user, &password)?;
+    } else if opts.kube && std::path::Path::new("/var/run/secrets/kubernetes.io/serviceaccount/token").exists() {
+        debug!("Authenticating with Vault via K8s ServiceAccount");
+        let role: String = service.to_string();
+        vault.kubernetes_auth(role)?;
     } else if let (Some(app_id), Some(app_user)) = (&opts.app_id, &opts.app_user) {
         debug!("Authenticating with Vault via App ID");
         vault.app_id_auth(app_id, app_user)?;
